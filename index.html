@@ -128,8 +128,8 @@
           const [error, setError] = useState('');
           const { user } = useAuth();
 
-          const feriadosMap = { '2025-01-01': 'Confraternização Universal', '2025-01-31': 'Instabilidade Projudi', '2025-03-04': 'Carnaval', '2025-04-18': 'Paixão de Cristo', '2025-04-21': 'Tiradentes', '2025-05-01': 'Dia do Trabalho', '2025-10-28': 'Dia do Funcionário Público', '2025-11-20': 'Consciência Negra', '2025-12-08': 'Dia da Justiça' };
-          const decretosMap = { '2025-03-03': 'Véspera de Carnaval', '2025-04-17': 'Quinta-feira Santa', '2025-05-02': 'Decreto nº 127/2025', '2025-06-19': 'Corpus Christi', '2025-06-20': 'Feriado CNJ', '2025-09-08': 'Padroeira de Curitiba', '2025-10-27': 'Decreto nº 127/2025', '2025-11-21': 'Decreto Suspensão de expediente nº 127/2025', '2025-12-19': 'Decreto', '2025-12-24': 'Decreto', '2025-12-31': 'Decreto' };
+          const feriadosMap = { '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-01-31': ' Nº 102/2025 - Instabilidade Projudi', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-20': 'N° 645/2024 - Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça' };
+          const decretosMap = { '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N°127/2025 P-SEP', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP', '2025-11-21': 'N° 127/2025 P-SEP', '2025-12-19': 'N° 645/2024 Emancipação Política do Paraná', '2025-12-24': 'N° 645/2025 - Vespera de natal', '2025-12-31': 'N° 645/2024 - Véspera de ano novo' };
 
           const getMotivoDiaNaoUtil = (date, considerarDecretos) => {
             const dateString = date.toISOString().split('T')[0];
@@ -332,7 +332,7 @@
                     }
                 } catch (err) {
                     switch (err.code) {
-                        case 'auth/email-already-in-use': setError('Este e-mail já está registado. Tente fazer login ou redefinir a sua palavra-passe.'); break;
+                        case 'auth/email-already-in-use': setError('Este e-mail  está registado. Tente fazer login ou redefinir a sua palavra-passe.'); break;
                         case 'auth/user-not-found': setError('Nenhuma conta encontrada com este e-mail. Verifique o e-mail ou crie uma nova conta.'); break;
                         case 'auth/wrong-password': setError('Palavra-passe incorreta. Tente novamente ou redefina a sua palavra-passe.'); break;
                         case 'auth/weak-password': setError('A palavra-passe deve ter pelo menos 6 caracteres.'); break;
