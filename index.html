@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Prazos TJPR - P-SEP-AR</title>
+    <title>Calculadora de Prazos TJPR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -15,8 +15,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     
     <!-- Chart.js e SheetJS (para gráficos e Excel) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2/dist/react-chartjs-2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2@2.11.2/dist/react-chartjs-2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
@@ -52,7 +52,7 @@
         const db = app ? firebase.firestore() : null;
 
         const { useState, useEffect, useCallback, createContext, useContext } = React;
-        const { Bar, Doughnut } = ReactChartjs2;
+        const { Bar, HorizontalBar } = ReactChartjs2;
 
         // --- Contexto de Autenticação ---
         const AuthContext = createContext(null);
@@ -93,9 +93,7 @@
 
         // --- Componentes ---
 
-        const ConsultaAssistidaPJE = () => {
-            const [numeroProcesso, setNumeroProcesso] = useState('');
-
+        const ConsultaAssistidaPJE = ({ numeroProcesso, setNumeroProcesso }) => {
             const handleConsulta = () => {
                 if (!numeroProcesso.trim()) return;
                 const numeroLimpo = numeroProcesso.replace(/\D/g, '');
@@ -120,7 +118,7 @@
             );
         };
 
-        const CalculadoraDePrazo = () => {
+        const CalculadoraDePrazo = ({ numeroProcesso }) => {
           const [dataDisponibilizacao, setDataDisponibilizacao] = useState('');
           const [prazoSelecionado, setPrazoSelecionado] = useState(15);
           const [tipoPrazo, setTipoPrazo] = useState('civel');
@@ -129,36 +127,10 @@
           const { user } = useAuth();
 
           const feriadosMap = {
-            '2025-01-01': 'N° 645/2024 - Confraternização Universal',
-            '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi',
-            '2025-03-04': 'N° 645/2024 - Carnaval',
-            '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi',
-            '2025-04-18': 'N° 645/2024 - Paixão de Cristo',
-            '2025-04-21': 'N° 645/2024 - Tiradentes',
-            '2025-05-01': 'N° 645/2024 - Dia do Trabalho',
-            '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi',
-            '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi',
-            '2025-09-07': 'N° 645/2024 - Independência do Brasil',
-            '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida',
-            '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público',
-            '2025-11-02': 'N° 645/2024 - Finados',
-            '2025-11-15': 'N° 645/2024 - Proclamação da República',
-            '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra',
-            '2025-12-08': 'N° 645/2024 - Dia da Justiça',
-            '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná',
-            '2025-12-25': 'N° 645/2024 - Natal',
+            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi', '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-25': 'N° 645/2024 - Natal',
           };
           const decretosMap = {
-            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval',
-            '2025-04-17': 'N° 645/2024 - Quinta-feira Santa',
-            '2025-05-02': 'N° 127/2025 - P-SEP - Decreto',
-            '2025-06-19': 'N° 645/2024 - Corpus Christi',
-            '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ',
-            '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba',
-            '2025-10-27': 'N° 127/2025 - P-SEP - Decreto',
-            '2025-11-21': 'N° 127/2025 - P-SEP - Decreto',
-            '2025-12-24': 'N° 645/2024 - Véspera de Natal',
-            '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
+            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
           };
 
           const getMotivoDiaNaoUtil = (date, considerarDecretos) => {
@@ -203,6 +175,7 @@
                       userEmail: user.email,
                       materia: tipoPrazo,
                       prazo: prazoSelecionado,
+                      numeroProcesso: numeroProcesso || 'Não informado',
                       timestamp: firebase.firestore.FieldValue.serverTimestamp()
                   }).catch(err => console.error("Erro ao registar uso:", err));
               }
@@ -468,50 +441,52 @@
         };
         
         const AdminPage = () => {
-             const [stats, setStats] = useState({ total: 0, perMateria: {}, perPrazo: {}, recent: [] });
+             const [stats, setStats] = useState({ total: 0, perMateria: {}, perPrazo: {}, byDay: {} });
+             const [allData, setAllData] = useState([]);
              const [filteredData, setFilteredData] = useState([]);
              const [loading, setLoading] = useState(true);
-             const [filters, setFilters] = useState({ startDate: '', endDate: '', email: '', materia: 'todos' });
-
-             const fetchData = useCallback(() => {
-                if (!db) return;
-                setLoading(true);
-                let query = db.collection('usageStats').orderBy('timestamp', 'desc');
-                
-                if(filters.startDate) query = query.where('timestamp', '>=', new Date(filters.startDate + 'T00:00:00'));
-                if(filters.endDate) query = query.where('timestamp', '<=', new Date(filters.endDate + 'T23:59:59'));
-                if(filters.materia !== 'todos') query = query.where('materia', '==', filters.materia);
-                
-                query.get()
-                    .then(snapshot => {
-                        let usageData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                        
-                        if(filters.email) {
-                            usageData = usageData.filter(item => item.userEmail.includes(filters.email.toLowerCase()));
-                        }
-
-                        setFilteredData(usageData);
-
-                        const summary = {
-                            total: usageData.length,
-                            perMateria: usageData.reduce((acc, curr) => { acc[curr.materia] = (acc[curr.materia] || 0) + 1; return acc; }, {}),
-                            perPrazo: usageData.reduce((acc, curr) => { acc[curr.prazo] = (acc[curr.prazo] || 0) + 1; return acc; }, {}),
-                            recent: usageData.slice(0, 10),
-                            byDay: usageData.reduce((acc, curr) => {
-                                const date = curr.timestamp.toDate().toLocaleDateString('pt-BR');
-                                acc[date] = (acc[date] || 0) + 1;
-                                return acc;
-                            },{})
-                        };
-                        setStats(summary);
-                        setLoading(false);
-                    })
-                    .catch(err => { console.error(err); setLoading(false); });
-            }, [filters]);
+             const [filters, setFilters] = useState({ startDate: '', endDate: '', email: 'todos', materia: 'todos', prazo: 'todos' });
+             const [allUsers, setAllUsers] = useState([]);
+             const [hasSearched, setHasSearched] = useState(false);
 
             useEffect(() => {
-                fetchData();
-            }, [fetchData]);
+                if (!db) { setLoading(false); return; }
+                setLoading(true);
+                db.collection('usageStats').orderBy('timestamp', 'desc').get()
+                    .then(snapshot => {
+                        const data = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                        setAllData(data);
+                        setAllUsers([...new Set(data.map(item => item.userEmail))].sort());
+                        setLoading(false);
+                    })
+                    .catch(err => { console.error("Firebase query error:", err); setLoading(false); });
+             }, []);
+
+            const handleFilter = () => {
+                setHasSearched(true);
+                let usageData = allData.filter(item => {
+                    const itemDate = item.timestamp.toDate();
+                    if(filters.startDate && itemDate < new Date(filters.startDate + 'T00:00:00')) return false;
+                    if(filters.endDate && itemDate > new Date(filters.endDate + 'T23:59:59')) return false;
+                    if(filters.materia !== 'todos' && item.materia !== filters.materia) return false;
+                    if(filters.prazo !== 'todos' && item.prazo != filters.prazo) return false;
+                    if(filters.email !== 'todos' && item.userEmail !== filters.email) return false;
+                    return true;
+                });
+                setFilteredData(usageData);
+
+                const summary = {
+                    total: usageData.length,
+                    perMateria: usageData.reduce((acc, curr) => { acc[curr.materia] = (acc[curr.materia] || 0) + 1; return acc; }, {}),
+                    perPrazo: usageData.reduce((acc, curr) => { acc[curr.prazo] = (acc[curr.prazo] || 0) + 1; return acc; }, {}),
+                    byDay: usageData.reduce((acc, curr) => {
+                        const date = curr.timestamp.toDate().toLocaleDateString('pt-BR');
+                        acc[date] = (acc[date] || 0) + 1;
+                        return acc;
+                    },{})
+                };
+                setStats(summary);
+            };
 
             const handleFilterChange = (e) => {
                 setFilters({...filters, [e.target.name]: e.target.value });
@@ -522,6 +497,7 @@
                     'Utilizador': item.userEmail,
                     'Matéria': item.materia,
                     'Prazo (dias)': item.prazo,
+                    'Número do Processo': item.numeroProcesso || '',
                     'Data': item.timestamp?.toDate().toLocaleString('pt-BR')
                 }));
                 const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -530,51 +506,76 @@
                 XLSX.writeFile(workbook, "relatorio_calculadora_prazos.xlsx");
             };
 
-            const chartDataMateria = {
-                labels: ['Cível', 'Crime'],
-                datasets: [{ data: [stats.perMateria.civel || 0, stats.perMateria.crime || 0], backgroundColor: ['#6366F1', '#F59E0B'], hoverBackgroundColor: ['#4F46E5', '#D97706'] }]
-            };
-             const chartDataPrazo = {
-                labels: ['5 Dias', '15 Dias'],
-                datasets: [{ data: [stats.perPrazo[5] || 0, stats.perPrazo[15] || 0], backgroundColor: ['#10B981', '#3B82F6'], hoverBackgroundColor: ['#059669', '#2563EB'] }]
-            };
-             const chartDataByDay = {
-                labels: Object.keys(stats.byDay || {}).reverse(),
-                datasets: [{ label: 'Cálculos por Dia', data: Object.values(stats.byDay || {}).reverse(), backgroundColor: 'rgba(79, 70, 229, 0.8)' }]
-            };
-            const chartOptions = { plugins: { legend: { display: false } } };
+            const chartDataMateria = { labels: ['Cível', 'Crime'], datasets: [{ data: [stats.perMateria.civel || 0, stats.perMateria.crime || 0], backgroundColor: ['#6366F1', '#F59E0B'] }] };
+            const chartDataPrazo = { labels: ['5 Dias', '15 Dias'], datasets: [{ data: [stats.perPrazo[5] || 0, stats.perPrazo[15] || 0], backgroundColor: ['#10B981', '#3B82F6'] }] };
+            const chartDataByDay = { labels: Object.keys(stats.byDay || {}).reverse(), datasets: [{ label: 'Cálculos por Dia', data: Object.values(stats.byDay || {}).reverse(), backgroundColor: 'rgba(79, 70, 229, 0.8)' }] };
+            const chartOptions = { legend: { display: false }, scales: { xAxes: [{ ticks: { beginAtZero: true } }] }};
 
-            if(loading) return <p>A carregar estatísticas...</p>
+            if(loading) return <p>A carregar dados...</p>
 
              return(
                  <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 space-y-8">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Painel Administrativo</h2>
                     
                     <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <div className="md:col-span-2 grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                            <div className="grid grid-cols-2 gap-2">
                                 <div><label className="text-xs">Data Inicial</label><input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"/></div>
                                 <div><label className="text-xs">Data Final</label><input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"/></div>
                             </div>
-                            <div><label className="text-xs">Email do Utilizador</label><input type="text" name="email" value={filters.email} onChange={handleFilterChange} placeholder="Filtrar por email" className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"/></div>
+                            <div><label className="text-xs">Utilizador</label><select name="email" value={filters.email} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todos</option>{allUsers.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
                             <div><label className="text-xs">Matéria</label><select name="materia" value={filters.materia} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todas</option><option value="civel">Cível</option><option value="crime">Crime</option></select></div>
+                             <div><label className="text-xs">Prazo</label><select name="prazo" value={filters.prazo} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todos</option><option value="5">5 Dias</option><option value="15">15 Dias</option></select></div>
                         </div>
                          <div className="flex justify-end gap-2 mt-4">
-                             <button onClick={fetchData} className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Filtrar</button>
-                            <button onClick={handleExport} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">Baixar Relatório (Excel)</button>
+                             <button onClick={handleFilter} className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Filtrar</button>
+                            <button onClick={handleExport} disabled={filteredData.length === 0} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">Baixar Relatório (Excel)</button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                        <div className="md:col-span-3 p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
-                             <h3 className="font-semibold text-center mb-2">Uso por Dia</h3>
-                             <Bar data={chartDataByDay} options={{ responsive: true }}/>
+                    {!hasSearched ? (
+                         <div className="text-center p-8 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
+                            <p className="text-slate-500 dark:text-slate-400">Selecione os filtros e clique em "Filtrar" para ver os resultados.</p>
                         </div>
-                         <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                            <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Matéria</h3><Doughnut data={chartDataMateria} options={chartOptions}/></div>
-                            <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Prazo</h3><Doughnut data={chartDataPrazo} options={chartOptions}/></div>
+                    ) : filteredData.length === 0 ? (
+                        <div className="text-center p-8 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
+                            <p className="text-slate-500 dark:text-slate-400">Nenhum resultado encontrado para os filtros selecionados.</p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                                <div className="md:col-span-3 p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
+                                     <h3 className="font-semibold text-center mb-2">Uso por Dia</h3>
+                                     <Bar data={chartDataByDay} options={{ responsive: true }}/>
+                                </div>
+                                 <div className="md:col-span-2 grid grid-cols-1 gap-6">
+                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Matéria</h3><HorizontalBar data={chartDataMateria} options={chartOptions}/></div>
+                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Prazo</h3><HorizontalBar data={chartDataPrazo} options={chartOptions}/></div>
+                                </div>
+                            </div>
+                             <div>
+                                <h3 className="text-lg font-semibold mb-2">Resultados Filtrados ({filteredData.length})</h3>
+                                <div className="overflow-x-auto bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                                            <tr><th className="px-6 py-3">Utilizador</th><th className="px-6 py-3">Nº Processo</th><th className="px-6 py-3">Matéria</th><th className="px-6 py-3">Prazo</th><th className="px-6 py-3">Data</th></tr>
+                                        </thead>
+                                        <tbody>
+                                        {filteredData.map(item => (
+                                            <tr key={item.id} className="border-b border-slate-200/50 dark:border-slate-700/50">
+                                                <td className="px-6 py-4 font-medium">{item.userEmail}</td>
+                                                <td className="px-6 py-4">{item.numeroProcesso}</td>
+                                                <td className="px-6 py-4">{item.materia}</td>
+                                                <td className="px-6 py-4">{item.prazo} dias</td>
+                                                <td className="px-6 py-4">{item.timestamp?.toDate().toLocaleString('pt-BR')}</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
              );
         };
@@ -602,6 +603,7 @@
 
         const CalculatorApp = () => {
             const [currentArea, setCurrentArea] = useState('Calculadora');
+            const [numeroProcesso, setNumeroProcesso] = useState('');
             const { isAdmin } = useAuth();
 
             return(
@@ -619,8 +621,8 @@
                       <style>{`.animate-fade-in { animation: fadeIn 0.7s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                         {currentArea === 'Calculadora' ? (
                             <div className="space-y-8">
-                                <ConsultaAssistidaPJE />
-                                <CalculadoraDePrazo />
+                                <ConsultaAssistidaPJE numeroProcesso={numeroProcesso} setNumeroProcesso={setNumeroProcesso} />
+                                <CalculadoraDePrazo numeroProcesso={numeroProcesso} />
                             </div>
                         ) : (
                             <AdminPage />
@@ -634,9 +636,7 @@
         const CreditsWatermark = () => (
              <div className="fixed bottom-2 right-2 text-xs text-slate-400 dark:text-slate-600 z-50 text-right pointer-events-none">
                 <p>Desenvolvido por:</p>
-                <p>Assessoria de Recursos aos Tribunais Superiores (STF e STJ)</p>
-                <p>da Secretaria Especial da Presidência</p>
-                 <p> </p>
+                <p>Assessoria de Recursos aos Tribunais Superiores (STF e STJ) da Secretaria Especial da Presidência</p>
                 <p>Alif Pietrobelli Azevedo</p>
                 <p>Elvertoni Martelli Coimbra</p>
                 <p><strong>Luís Gustavo Arruda Lançoni</strong></p>
