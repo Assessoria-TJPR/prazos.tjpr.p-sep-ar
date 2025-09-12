@@ -66,12 +66,19 @@
             const [isAdmin, setIsAdmin] = useState(false);
             const [loading, setLoading] = useState(true);
 
-            useEffect(() => {
-                if (!auth) {
-                    setLoading(false);
-                    return;
+            const updateUserAndAdminStatus = async (firebaseUser) => {
+                if (firebaseUser) {
+                    setUser(firebaseUser);
+                    const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+                    setIsAdmin(userDoc.exists && userDoc.data().isAdmin === true);
+                } else {
+                    setUser(null);
+                    setIsAdmin(false);
                 }
-                const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            };
+
+            useEffect(() => {
+                const onAuthChange = async (user) => {
                     if (user) {
                         setUser(user);
                         const userDoc = await db.collection('users').doc(user.uid).get();
@@ -81,11 +88,18 @@
                         setIsAdmin(false);
                     }
                     setLoading(false);
-                });
+                };
+
+                if (!auth) {
+                    setLoading(false);
+                    return;
+                }
+                const unsubscribe = auth.onAuthStateChanged(onAuthChange);
                 return () => unsubscribe();
             }, []);
 
-            const value = { user, isAdmin, loading };
+            // A função de atualização é exposta para que componentes filhos possam forçar a atualização do usuário.
+            const value = { user, isAdmin, loading, refreshUser: () => auth.currentUser && updateUserAndAdminStatus(auth.currentUser) };
 
             return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
         };
@@ -135,10 +149,10 @@
           const { user } = useAuth();
 
           const feriadosMap = {
-            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-25': 'N° 645/2024 - Natal',
+            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-25': 'N° 645/2024 - Natal',
           };
           const decretosMap = {
-            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
+            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
           };
           const instabilidadeMap = {
             '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi', '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi', '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi', '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi',
@@ -221,18 +235,34 @@
                     const resultadoComDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, true);
                     const resultadoSemDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, false);
                     const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime();
-                    setResultado({ dataPublicacao, inicioPrazo: inicioDoPrazo, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel' });
+                    setResultado({ dataPublicacao, inicioPrazo: inicioDoPrazo, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel', alertas: [] });
                 } else { // Lógica para Crime (dias corridos)
-                    const dataPublicacao = getProximoDiaUtilSemFeriado(inicioDisponibilizacao);
-                    const dataIntimacao = getProximoDiaUtilSemFeriado(dataPublicacao);
+                    const dataPublicacao = getProximoDiaUtil(inicioDisponibilizacao);
+                    const dataIntimacao = getProximoDiaUtil(dataPublicacao);
+                    const alertas = [];
                     
                     // A contagem começa no dia da intimação (inclusive).
                     // Adicionamos o prazo - 1, pois o dia da intimação já conta como o primeiro dia.
                     const prazoFinalBruto = new Date(dataIntimacao.getTime());
                     prazoFinalBruto.setDate(prazoFinalBruto.getDate() + (prazoNumerico - 1));
+                    
+                    let prazoFinalAjustado = new Date(prazoFinalBruto.getTime());
+                    const motivoDiaNaoUtil = getMotivoDiaNaoUtil(prazoFinalAjustado, true);
+                    const isFimDeSemana = prazoFinalAjustado.getDay() === 0 || prazoFinalAjustado.getDay() === 6;
 
-                    const prazoFinalAjustado = (prazoFinalBruto.getDay() === 0 || prazoFinalBruto.getDay() === 6) ? getProximoDiaUtilSemFeriado(prazoFinalBruto) : prazoFinalBruto;
-                    setResultado({ dataPublicacao, inicioPrazo: dataIntimacao, prazoFinal: prazoFinalAjustado, prazo: prazoNumerico, tipo: 'crime' });
+                    if (isFimDeSemana || motivoDiaNaoUtil) {
+                        const dataFinalStr = prazoFinalAjustado.toISOString().split('T')[0];
+                        if (dataFinalStr === '2025-06-19' || dataFinalStr === '2025-06-20') {
+                            prazoFinalAjustado = new Date('2025-06-23T00:00:00');
+                            alertas.push({ tipo: 'info', mensagem: 'Prazo prorrogado para 23/06/2025 com dispensa de comprovação (exceção para Recursos Especiais).' });
+                        } else {
+                            prazoFinalAjustado = getProximoDiaUtil(prazoFinalAjustado);
+                            if (motivoDiaNaoUtil && (motivoDiaNaoUtil.tipo === 'decreto' || motivoDiaNaoUtil.tipo === 'instabilidade')) {
+                                alertas.push({ tipo: 'aviso', mensagem: `O prazo foi prorrogado devido a "${motivoDiaNaoUtil.motivo}". É necessária a comprovação.` });
+                            }
+                        }
+                    }
+                    setResultado({ dataPublicacao, inicioPrazo: dataIntimacao, prazoFinal: prazoFinalAjustado, prazo: prazoNumerico, tipo: 'crime', alertas: alertas });
                 }
                 logUsage();
             } catch(e) {
@@ -301,11 +331,16 @@
                             </>
                         ) : (
                             <div className="text-center">
+                                {resultado.alertas.map((alerta, index) => (
+                                    <div key={index} className={`p-4 mb-4 text-sm rounded-lg ${alerta.tipo === 'aviso' ? 'text-orange-800 bg-orange-50 dark:bg-gray-800 dark:text-orange-400' : 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400'}`} role="alert">
+                                        <span className="font-medium">{alerta.tipo === 'aviso' ? 'Atenção! ' : 'Info: '}</span>{alerta.mensagem}
+                                    </div>
+                                ))}
                                 <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Prazo Final (Crime)</h3>
                                 <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                 <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
                                 <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em fim de semana.</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em dia não útil.</p>
                             </div>
                         )}
                     </div>
@@ -431,7 +466,10 @@
                         await auth.signInWithEmailAndPassword(email, password);
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                        await userCredential.user.sendEmailVerification();
+                        await Promise.all([
+                            db.collection('users').doc(userCredential.user.uid).set({ email: email, isAdmin: false }),
+                            userCredential.user.sendEmailVerification()
+                        ]);
                         setMessage("Conta criada! Enviámos um link de verificação para o seu e-mail.");
                     }
                 } catch (err) {
@@ -542,6 +580,7 @@
         };
         
         const AdminPage = () => {
+             const { user } = useAuth();
              const [stats, setStats] = useState({ total: 0, perMateria: {}, perPrazo: {}, byDay: {} });
              const [allData, setAllData] = useState([]);
              const [filteredData, setFilteredData] = useState([]);
@@ -554,17 +593,29 @@
              const ITEMS_PER_PAGE = 10;
              
             useEffect(() => {
+                let isMounted = true;
                 if (!db) { setLoading(false); return; }
                 setLoading(true);
-                db.collection('usageStats').orderBy('timestamp', 'desc').get()
-                    .then(snapshot => {
-                        const data = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                        setAllData(data);
-                        setAllUsers([...new Set(data.map(item => item.userEmail))].filter(Boolean).sort());
-                        setLoading(false);
-                    })
-                    .catch(err => { console.error("Firebase query error:", err); setLoading(false); });
-             }, []);
+
+                const fetchData = async () => {
+                    try {
+                        const [usageSnapshot, usersSnapshot] = await Promise.all([
+                            db.collection('usageStats').orderBy('timestamp', 'desc').get(),
+                            db.collection('users').get()
+                        ]);
+                        const usersMap = usersSnapshot.docs.reduce((acc, doc) => ({ ...acc, [doc.data().email]: doc.data().displayName }), {});
+                        const usageData = usageSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                        const enrichedData = usageData.map(d => ({...d, userName: usersMap[d.userEmail] || d.userEmail }));
+                        if (isMounted) {
+                            setAllData(enrichedData);
+                            setAllUsers([...new Set(enrichedData.map(item => item.userName))].filter(Boolean).sort());
+                            setLoading(false);
+                        }
+                    } catch (err) { console.error("Firebase query error:", err); if(isMounted) setLoading(false); }
+                };
+                fetchData();
+                return () => { isMounted = false; };
+             }, []); // Executa apenas uma vez
 
             const handleFilter = () => {
                 setHasSearched(true);
@@ -584,7 +635,7 @@
                     }
                     if(filters.materia !== 'todos' && item.materia !== filters.materia) return false;
                     if(filters.prazo !== 'todos' && item.prazo != filters.prazo) return false;
-                    if(filters.email !== 'todos' && item.userEmail !== filters.email) return false;
+                    if(filters.email !== 'todos' && (item.userName !== filters.email && item.userEmail !== filters.email)) return false;
                     if(filters.userId && item.userId !== filters.userId) return false;
                     return true;
                 });
@@ -605,7 +656,8 @@
 
             const handleUserClick = (userEmail) => {
                 const userData = allData.filter(item => item.userEmail === userEmail);
-                setSelectedUser({ email: userEmail, data: userData });
+                const userName = userData.length > 0 ? (userData[0].userName || userEmail) : userEmail;
+                setSelectedUser({ email: userEmail, name: userName, data: userData }); // 'name' aqui é o userName ou email
             };
 
             const handleFilterChange = (e) => {
@@ -615,7 +667,7 @@
             const handleExport = () => {
                 const dataToExport = (selectedUser ? selectedUser.data : filteredData).map(item => ({
                     'ID Utilizador': item.userId,
-                    'Utilizador': item.userEmail,
+                    'Utilizador': item.userName || item.userEmail,
                     'Matéria': item.materia,
                     'Prazo (dias)': item.prazo,
                     'Número do Processo': item.numeroProcesso || '',
@@ -629,7 +681,7 @@
 
             const topUsers = Object.entries(
                 allData.reduce((acc, curr) => {
-                    if(curr.userEmail) acc[curr.userEmail] = (acc[curr.userEmail] || 0) + 1;
+                    if(curr.userName || curr.userEmail) acc[curr.userName || curr.userEmail] = (acc[curr.userName || curr.userEmail] || 0) + 1;
                     return acc;
                 }, {})
             ).sort(([, a], [, b]) => b - a).slice(0, 10);
@@ -650,7 +702,7 @@
                         <div className="flex justify-between items-start">
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Perfil do Utilizador</h2>
-                                <p className="text-slate-500 dark:text-slate-400">{selectedUser.email}</p>
+                                <p className="text-slate-500 dark:text-slate-400">{selectedUser.name}</p>
                                 <p className="text-xs text-slate-400 dark:text-slate-500">ID: {selectedUser.data[0]?.userId}</p>
                             </div>
                             <button onClick={() => setSelectedUser(null)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">&larr; Voltar ao Painel</button>
@@ -689,9 +741,9 @@
                         <h3 className="font-semibold text-lg mb-4 text-slate-800 dark:text-slate-100">Top 10 Utilizadores</h3>
                         {topUsers.length > 0 ? (
                             <ul className="space-y-2 text-left">
-                                {topUsers.map(([email, count], index) => (
-                                    <li key={email} className="flex items-center justify-between p-2 bg-slate-100/70 dark:bg-slate-900/50 rounded-md text-sm">
-                                        <span className="font-medium truncate" title={email}>{index + 1}. {email}</span>
+                                {topUsers.map(([name, count], index) => (
+                                    <li key={name} className="flex items-center justify-between p-2 bg-slate-100/70 dark:bg-slate-900/50 rounded-md text-sm">
+                                        <span className="font-medium truncate" title={name}>{index + 1}. {name}</span>
                                         <span className="font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">{count}</span>
                                     </li>
                                 ))}
@@ -710,7 +762,7 @@
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                             <div><label className="text-xs font-medium text-slate-500">Data Inicial</label><input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"/></div>
                             <div><label className="text-xs font-medium text-slate-500">Data Final</label><input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"/></div>
-                            <div className="lg:col-span-1"><label className="text-xs font-medium text-slate-500">Utilizador (Email)</label><select name="email" value={filters.email} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todos</option>{allUsers.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                            <div className="lg:col-span-1"><label className="text-xs font-medium text-slate-500">Utilizador</label><select name="email" value={filters.email} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todos</option>{allUsers.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
                             <div><label className="text-xs font-medium text-slate-500">Matéria</label><select name="materia" value={filters.materia} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todas</option><option value="civel">Cível</option><option value="crime">Crime</option></select></div>
                             <div><label className="text-xs font-medium text-slate-500">Prazo</label><select name="prazo" value={filters.prazo} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todos</option><option value="5">5 Dias</option><option value="15">15 Dias</option></select></div>
                         </div>
@@ -759,8 +811,7 @@
                                         </thead>
                                         <tbody>
                                         {paginatedData.map(item => (
-                                            <tr key={item.id} className="border-b border-slate-200/50 dark:border-slate-700/50">
-                                                <td className="px-4 py-4 font-medium break-words"><a href="#" onClick={(e) => {e.preventDefault(); handleUserClick(item.userEmail)}} className="text-indigo-600 hover:underline">{item.userEmail}</a></td>
+                                            <tr key={item.id} className="border-b border-slate-200/50 dark:border-slate-700/50"><td className="px-4 py-4 font-medium break-words"><a href="#" onClick={(e) => {e.preventDefault(); handleUserClick(item.userEmail)}} className="text-indigo-600 hover:underline">{item.userName}</a></td>
                                                 <td className="px-4 py-4 text-xs text-slate-500 break-words">{item.userId}</td>
                                                 <td className="px-4 py-4 break-words">{item.numeroProcesso}</td>
                                                 <td className="px-4 py-4">{item.materia}</td>
@@ -785,7 +836,6 @@
                 </div>
              );
         };
-
 
         const Header = () => {
             const { user } = useAuth();
