@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modulo de Prazos - P-SEP-AR - TJPR</title>
+    <title>Calculadora de Prazos TJPR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -174,15 +174,18 @@
           const calcularPrazoFinalDiasUteis = (inicioDoPrazo, prazo, considerarDecretos) => {
             let diasUteisContados = 0;
             const diasNaoUteisEncontrados = [];
-            const dataCorrente = new Date(inicioDoPrazo.getTime());
+            // Começa a contagem a partir do dia anterior ao início do prazo para incluir o primeiro dia.
+            const dataCorrente = new Date(inicioDoPrazo);
+            dataCorrente.setDate(dataCorrente.getDate() - 1);
+
             while (diasUteisContados < prazo) {
                 dataCorrente.setDate(dataCorrente.getDate() + 1);
                 const diaDaSemana = dataCorrente.getDay();
                 const infoDiaNaoUtil = getMotivoDiaNaoUtil(dataCorrente, considerarDecretos);
-                if (diaDaSemana !== 0 && diaDaSemana !== 6 && !infoDiaNaoUtil) {
+                if (diaDaSemana === 0 || diaDaSemana === 6 || infoDiaNaoUtil) {
+                    if (infoDiaNaoUtil) diasNaoUteisEncontrados.push({ data: new Date(dataCorrente.getTime()), ...infoDiaNaoUtil });
+                } else {
                     diasUteisContados++;
-                } else if (infoDiaNaoUtil) {
-                    diasNaoUteisEncontrados.push({ data: new Date(dataCorrente.getTime()), ...infoDiaNaoUtil });
                 }
             }
             return { prazoFinal: dataCorrente, diasNaoUteis: diasNaoUteisEncontrados };
