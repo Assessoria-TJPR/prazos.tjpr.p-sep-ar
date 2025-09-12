@@ -223,9 +223,10 @@
                     const dataPublicacao = getProximoDiaUtilSemFeriado(inicioDisponibilizacao);
                     const dataIntimacao = getProximoDiaUtilSemFeriado(dataPublicacao);
                     
-                    // A contagem começa no dia seguinte à intimação.
+                    // A contagem começa no dia da intimação (inclusive).
+                    // Adicionamos o prazo - 1, pois o dia da intimação já conta como o primeiro dia.
                     const prazoFinalBruto = new Date(dataIntimacao.getTime());
-                    prazoFinalBruto.setDate(prazoFinalBruto.getDate() + prazoNumerico);
+                    prazoFinalBruto.setDate(prazoFinalBruto.getDate() + (prazoNumerico - 1));
 
                     const prazoFinalAjustado = (prazoFinalBruto.getDay() === 0 || prazoFinalBruto.getDay() === 6) ? getProximoDiaUtilSemFeriado(prazoFinalBruto) : prazoFinalBruto;
                     setResultado({ dataPublicacao, inicioPrazo: dataIntimacao, prazoFinal: prazoFinalAjustado, prazo: prazoNumerico, tipo: 'crime' });
@@ -298,7 +299,7 @@
                         ) : (
                             <div className="text-center">
                                 <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Prazo Final (Crime)</h3>
-                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Intimação em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                 <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
                                 <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em fim de semana.</p>
