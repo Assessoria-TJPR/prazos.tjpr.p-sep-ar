@@ -23,6 +23,10 @@
         body {
             font-family: Inter, sans-serif;
         }
+        .watermark-overlay {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold; color: rgba(0, 0, 0, 0.05); transform: rotate(-15deg); pointer-events: none; z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -106,12 +110,16 @@
             };
 
             return (
-                 <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50">
+                 <div className="relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50">
+                    <UserIDWatermark overlay={true} />
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">Consulta de Processo</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Insira o número para consultar o processo no Diário de Justiça Eletrônico Nacional.</p>
                     <div className="flex items-center gap-2">
                          <input type="text" value={numeroProcesso} onChange={(e) => setNumeroProcesso(e.target.value)} placeholder="Número do Processo" className="flex-grow w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
-                         <button onClick={handleConsulta} disabled={!numeroProcesso} className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 px-5 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">Consultar Processo</button>
+                         <button onClick={handleConsulta} disabled={!numeroProcesso} className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 px-5 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
+                            Consultar
+                         </button>
                     </div>
                      <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 text-center">Após a consulta, localize a "Data de Disponibilização" para usar na calculadora de prazos abaixo.</p>
                 </div>
@@ -127,26 +135,39 @@
           const { user } = useAuth();
 
           const feriadosMap = {
-            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi', '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-25': 'N° 645/2024 - Natal',
+            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-25': 'N° 645/2024 - Natal',
           };
           const decretosMap = {
-            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
+            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
+          };
+          const instabilidadeMap = {
+            '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi', '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi', '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi', '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi',
           };
 
           const getMotivoDiaNaoUtil = (date, considerarDecretos) => {
             const dateString = date.toISOString().split('T')[0];
-            if (feriadosMap[dateString]) return feriadosMap[dateString];
-            if (considerarDecretos && decretosMap[dateString]) return decretosMap[dateString];
+            if (feriadosMap[dateString]) return { motivo: feriadosMap[dateString], tipo: 'feriado' };
+            if (considerarDecretos) {
+                if (decretosMap[dateString]) return { motivo: decretosMap[dateString], tipo: 'decreto' };
+                if (instabilidadeMap[dateString]) return { motivo: instabilidadeMap[dateString], tipo: 'instabilidade' };
+            }
             const month = date.getMonth() + 1;
             const day = date.getDate();
-            if ((month === 1 && day >= 2 && day <= 20) || (month === 12 && day >= 20 && day <= 30)) return 'Recesso Forense';
+            if ((month === 1 && day >= 2 && day <= 20) || (month === 12 && day >= 20 && day <= 30)) return { motivo: 'Recesso Forense', tipo: 'recesso' };
             return null;
           };
           
           const getProximoDiaUtil = (data) => {
               const proximoDia = new Date(data.getTime());
-              do { proximoDia.setDate(proximoDia.getDate() + 1); } 
-              while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, true));
+              do {
+                  proximoDia.setDate(proximoDia.getDate() + 1);
+              } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, true));
+              return proximoDia;
+          };
+
+          const getProximoDiaUtilSemFeriado = (data) => {
+              const proximoDia = new Date(data.getTime());
+              do { proximoDia.setDate(proximoDia.getDate() + 1); } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false));
               return proximoDia;
           };
 
@@ -154,15 +175,14 @@
             let diasUteisContados = 0;
             const diasNaoUteisEncontrados = [];
             const dataCorrente = new Date(inicioDoPrazo.getTime());
-            dataCorrente.setDate(dataCorrente.getDate() - 1);
             while (diasUteisContados < prazo) {
                 dataCorrente.setDate(dataCorrente.getDate() + 1);
                 const diaDaSemana = dataCorrente.getDay();
-                const motivoNaoUtil = getMotivoDiaNaoUtil(dataCorrente, considerarDecretos);
-                if (diaDaSemana !== 0 && diaDaSemana !== 6 && !motivoNaoUtil) {
+                const infoDiaNaoUtil = getMotivoDiaNaoUtil(dataCorrente, considerarDecretos);
+                if (diaDaSemana !== 0 && diaDaSemana !== 6 && !infoDiaNaoUtil) {
                     diasUteisContados++;
-                } else if (motivoNaoUtil) {
-                    diasNaoUteisEncontrados.push({ data: new Date(dataCorrente.getTime()), motivo: motivoNaoUtil });
+                } else if (infoDiaNaoUtil) {
+                    diasNaoUteisEncontrados.push({ data: new Date(dataCorrente.getTime()), ...infoDiaNaoUtil });
                 }
             }
             return { prazoFinal: dataCorrente, diasNaoUteis: diasNaoUteisEncontrados };
@@ -191,6 +211,7 @@
             try {
                 const inicioDisponibilizacao = new Date(dataDisponibilizacao + 'T00:00:00');
                 const prazoNumerico = prazoSelecionado;
+                
                 if (tipoPrazo === 'civel') {
                     const dataPublicacao = getProximoDiaUtil(inicioDisponibilizacao);
                     const inicioDoPrazo = getProximoDiaUtil(dataPublicacao);
@@ -198,16 +219,16 @@
                     const resultadoSemDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, false);
                     const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime();
                     setResultado({ dataPublicacao, inicioPrazo: inicioDoPrazo, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel' });
-                } else { 
-                    let inicioDoPrazo = new Date(inicioDisponibilizacao.getTime());
-                    if (inicioDisponibilizacao.getDay() === 5) {
-                        inicioDoPrazo.setDate(inicioDoPrazo.getDate() + 4);
-                    } else {
-                        inicioDoPrazo.setDate(inicioDoPrazo.getDate() + 1);
-                    }
-                    const dataFinal = new Date(inicioDoPrazo.getTime());
-                    dataFinal.setDate(dataFinal.getDate() + prazoNumerico - 1); 
-                    setResultado({ prazoFinal: dataFinal, prazo: prazoNumerico, tipo: 'crime', inicioPrazo: inicioDoPrazo });
+                } else { // Lógica para Crime (dias corridos)
+                    const dataPublicacao = getProximoDiaUtilSemFeriado(inicioDisponibilizacao);
+                    const dataIntimacao = getProximoDiaUtilSemFeriado(dataPublicacao);
+                    
+                    // A contagem começa no dia seguinte à intimação.
+                    const prazoFinalBruto = new Date(dataIntimacao.getTime());
+                    prazoFinalBruto.setDate(prazoFinalBruto.getDate() + prazoNumerico);
+
+                    const prazoFinalAjustado = (prazoFinalBruto.getDay() === 0 || prazoFinalBruto.getDay() === 6) ? getProximoDiaUtilSemFeriado(prazoFinalBruto) : prazoFinalBruto;
+                    setResultado({ dataPublicacao, inicioPrazo: dataIntimacao, prazoFinal: prazoFinalAjustado, prazo: prazoNumerico, tipo: 'crime' });
                 }
                 logUsage();
             } catch(e) {
@@ -217,14 +238,15 @@
 
           return (
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50">
+                <UserIDWatermark overlay={true} />
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">Calculadora de Prazo Final</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Calcule o prazo final considerando as regras de contagem para cada matéria.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Matéria</label>
                     <div className="flex rounded-lg shadow-sm">
-                      <button onClick={() => setTipoPrazo('civel')} className={`w-full px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-l-lg ${tipoPrazo === 'civel' ? 'bg-indigo-600 text-white' : 'bg-white/50 dark:bg-slate-900/50 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Cível (Dias Úteis)</button>
-                      <button onClick={() => setTipoPrazo('crime')} className={`w-full px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-r-lg border-l border-slate-300 dark:border-slate-600 ${tipoPrazo === 'crime' ? 'bg-indigo-600 text-white' : 'bg-white/50 dark:bg-slate-900/50 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Crime (Dias Corridos)</button>
+                      <button onClick={() => setTipoPrazo('civel')} className={`w-full px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-l-lg ${tipoPrazo === 'civel' ? 'bg-indigo-600 text-white' : 'bg-white/50 dark:bg-slate-900/50 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Cível</button>
+                      <button onClick={() => setTipoPrazo('crime')} className={`w-full px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-r-lg border-l border-slate-300 dark:border-slate-600 ${tipoPrazo === 'crime' ? 'bg-indigo-600 text-white' : 'bg-white/50 dark:bg-slate-900/50 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Crime</button>
                     </div>
                   </div>
                   <div>
@@ -245,43 +267,118 @@
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">* O cálculo considera o calendário de feriados e recessos do TJPR para 2025.</p>
                 {error && <p className="mt-4 text-sm text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/30 p-3 rounded-lg">{error}</p>}
                 {resultado && (
-                    <div className="mt-6 p-4 border-t border-slate-200 dark:border-slate-700/50 animate-fade-in">
-                        {resultado.tipo === 'civel' && resultado.decretoImpactou && ( <div className="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-50 dark:bg-gray-800 dark:text-orange-400" role="alert"><span className="font-medium">Atenção!</span> Foi identificado um decreto de suspensão de prazo no período. Verifique se o advogado juntou o decreto aos autos para comprovar a prorrogação.</div> )}
+                    <div className="relative mt-6 p-4 border-t border-slate-200 dark:border-slate-700/50 animate-fade-in">
+                        <UserIDWatermark overlay={true} />
                         {resultado.tipo === 'civel' ? (
-                             <div className={`grid grid-cols-1 ${resultado.decretoImpactou ? 'md:grid-cols-2' : ''} gap-4`}>
-                                <div className={resultado.decretoImpactou ? 'border-r md:pr-4' : ''}>
-                                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">{resultado.decretoImpactou ? "Cenário 1: Sem Decreto" : "Prazo Final"}</h3>
-                                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                     <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis é:</p>
-                                     <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.semDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
-                                     {resultado.semDecreto.diasNaoUteis.length > 0 && (
-                                        <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Dias não úteis considerados:</p><ul className="text-xs text-slate-500 dark:text-slate-400 space-y-1">{resultado.semDecreto.diasNaoUteis.map((dia, i) => <li key={i}><strong>{dia.data.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}:</strong> {dia.motivo}</li>)}</ul></div>
-                                     )}
+                            <>
+                                {resultado.decretoImpactou && ( <div className="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-50 dark:bg-gray-800 dark:text-orange-400" role="alert"><span className="font-medium">Atenção!</span> Foi identificado um decreto de suspensão de prazo no período. Verifique se o advogado juntou o decreto aos autos para comprovar a prorrogação.</div> )}
+                                <div className={`grid grid-cols-1 ${resultado.decretoImpactou ? 'md:grid-cols-2' : ''} gap-4`}>
+                                        <div className={resultado.decretoImpactou ? 'border-r md:pr-4' : ''}>
+                                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">{resultado.decretoImpactou ? "Cenário 1: Sem Decreto" : "Prazo Final"}</h3>
+                                             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                             <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis é:</p>
+                                             <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.semDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
+                                             {resultado.semDecreto.diasNaoUteis.length > 0 && (
+                                                <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Dias não úteis considerados:</p><ul className="text-xs space-y-1"><GroupedDiasNaoUteis dias={resultado.semDecreto.diasNaoUteis} /></ul></div>
+                                             )}
+                                        </div>
+                                        {resultado.decretoImpactou && (
+                                            <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4 pt-4 md:pt-0">
+                                               <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Cenário 2: Com Decreto</h3>
+                                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                                <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis, <strong>comprovando o decreto</strong>, é:</p>
+                                                <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
+                                                {resultado.comDecreto.diasNaoUteis.filter(d => d.tipo === 'decreto' || d.tipo === 'instabilidade').length > 0 && (
+                                                    <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Suspensões que precisam ser comprovadas:</p><ul className="text-xs space-y-1"><GroupedDiasNaoUteis dias={resultado.comDecreto.diasNaoUteis.filter(d => d.tipo === 'decreto' || d.tipo === 'instabilidade')} /></ul></div>
+                                                )}
+                                            </div>
+                                        )}
                                 </div>
-                                {resultado.decretoImpactou && (
-                                    <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4 pt-4 md:pt-0">
-                                       <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Cenário 2: Com Decreto</h3>
-                                        <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                        <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis é:</p>
-                                        <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
-                                        {resultado.comDecreto.diasNaoUteis.length > 0 && (
-                                        <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Dias não úteis considerados:</p><ul className="text-xs text-slate-500 dark:text-slate-400 space-y-1">{resultado.comDecreto.diasNaoUteis.map((dia, i) => <li key={i}><strong>{dia.data.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}:</strong> {dia.motivo}</li>)}</ul></div>
-                                     )}
-                                    </div>
-                                )}
-                            </div>
-                        ) : ( 
+                            </>
+                        ) : (
                             <div className="text-center">
-                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Prazo Final</h3>
-                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Prazo Final (Crime)</h3>
+                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Intimação em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                 <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
-                                <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.prazoFinal.toLocaleDateString('pt-BR')}</p>
+                                <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em fim de semana.</p>
                             </div>
                         )}
                     </div>
                 )}
             </div>
           );
+        };
+
+        const GroupedDiasNaoUteis = ({ dias }) => {
+            const groupedDias = [];
+            let i = 0;
+            while (i < dias.length) {
+                const currentDay = dias[i];
+                if (currentDay.tipo === 'recesso') {
+                    let j = i;
+                    // Agrupa dias de recesso consecutivos
+                    while (j + 1 < dias.length && dias[j + 1].tipo === 'recesso') {
+                        const date1 = new Date(dias[j].data);
+                        const date2 = new Date(dias[j + 1].data);
+                        date1.setDate(date1.getDate() + 1);
+                        if (date1.getTime() === date2.getTime()) {
+                            j++;
+                        } else {
+                            break;
+                        }
+                    }
+                    const startDate = dias[i].data;
+                    const endDate = dias[j].data;
+                    groupedDias.push({
+                        ...dias[i],
+                        id: `recesso-${i}-${j}`,
+                        motivo: `Recesso Forense de ${startDate.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} até ${endDate.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}`,
+                        data: startDate, // Apenas para a chave
+                        tipo: 'recesso_grouped' // Tipo especial para renderização
+                    });
+                    i = j + 1;
+                } else {
+                    groupedDias.push({...currentDay, id: i});
+                    i++;
+                }
+            }
+            return groupedDias.map(dia => <DiaNaoUtilItem key={dia.id} dia={dia} />);
+        };
+
+        const DiaNaoUtilItem = ({ dia }) => {
+            let labelText = '';
+            let labelClasses = '';
+
+            switch (dia.tipo) {
+                case 'decreto':
+                    labelText = 'Decreto';
+                    labelClasses = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                    break;
+                case 'instabilidade':
+                    labelText = 'Instabilidade';
+                    labelClasses = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+                    break;
+                case 'feriado':
+                    labelText = 'Feriado Nacional';
+                    labelClasses = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+                    break;
+                case 'recesso':
+                    labelText = 'Recesso';
+                    labelClasses = 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+                    break;
+                case 'recesso_grouped':
+                    labelText = 'Recesso';
+                    labelClasses = 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+                    break;
+            }
+
+            return (
+                <li className="flex items-center justify-between">
+                    {dia.tipo === 'recesso_grouped' ? <span>{dia.motivo}</span> : <span><strong>{dia.data.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}:</strong> {dia.motivo}</span>}
+                    {labelText && <span className={`ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full ${labelClasses}`}>{labelText}</span>}
+                </li>
+            );
         };
         
         const LoginPage = () => {
@@ -445,10 +542,13 @@
              const [allData, setAllData] = useState([]);
              const [filteredData, setFilteredData] = useState([]);
              const [loading, setLoading] = useState(true);
-             const [filters, setFilters] = useState({ startDate: '', endDate: '', email: 'todos', materia: 'todos', prazo: 'todos' });
+             const [filters, setFilters] = useState({ startDate: '', endDate: '', email: 'todos', materia: 'todos', prazo: 'todos', userId: '' });
              const [allUsers, setAllUsers] = useState([]);
              const [hasSearched, setHasSearched] = useState(false);
-
+             const [currentPage, setCurrentPage] = useState(1);
+             const [selectedUser, setSelectedUser] = useState(null);
+             const ITEMS_PER_PAGE = 10;
+             
             useEffect(() => {
                 if (!db) { setLoading(false); return; }
                 setLoading(true);
@@ -456,7 +556,7 @@
                     .then(snapshot => {
                         const data = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                         setAllData(data);
-                        setAllUsers([...new Set(data.map(item => item.userEmail))].sort());
+                        setAllUsers([...new Set(data.map(item => item.userEmail))].filter(Boolean).sort());
                         setLoading(false);
                     })
                     .catch(err => { console.error("Firebase query error:", err); setLoading(false); });
@@ -464,13 +564,24 @@
 
             const handleFilter = () => {
                 setHasSearched(true);
+                setCurrentPage(1);
+                setSelectedUser(null);
                 let usageData = allData.filter(item => {
                     const itemDate = item.timestamp.toDate();
-                    if(filters.startDate && itemDate < new Date(filters.startDate + 'T00:00:00')) return false;
-                    if(filters.endDate && itemDate > new Date(filters.endDate + 'T23:59:59')) return false;
+                    if (filters.startDate) {
+                        const startDate = new Date(filters.startDate);
+                        if (itemDate < startDate) return false;
+                    }
+                    if (filters.endDate) {
+                        const endDate = new Date(filters.endDate);
+                        // Ajusta a data final para o fim do dia (23:59:59) para incluir todos os registros do dia selecionado.
+                        endDate.setHours(23, 59, 59, 999);
+                        if (itemDate > endDate) return false;
+                    }
                     if(filters.materia !== 'todos' && item.materia !== filters.materia) return false;
                     if(filters.prazo !== 'todos' && item.prazo != filters.prazo) return false;
                     if(filters.email !== 'todos' && item.userEmail !== filters.email) return false;
+                    if(filters.userId && item.userId !== filters.userId) return false;
                     return true;
                 });
                 setFilteredData(usageData);
@@ -488,12 +599,18 @@
                 setStats(summary);
             };
 
+            const handleUserClick = (userEmail) => {
+                const userData = allData.filter(item => item.userEmail === userEmail);
+                setSelectedUser({ email: userEmail, data: userData });
+            };
+
             const handleFilterChange = (e) => {
                 setFilters({...filters, [e.target.name]: e.target.value });
             };
             
             const handleExport = () => {
-                const dataToExport = filteredData.map(item => ({
+                const dataToExport = (selectedUser ? selectedUser.data : filteredData).map(item => ({
+                    'ID Utilizador': item.userId,
                     'Utilizador': item.userEmail,
                     'Matéria': item.materia,
                     'Prazo (dias)': item.prazo,
@@ -506,51 +623,127 @@
                 XLSX.writeFile(workbook, "relatorio_calculadora_prazos.xlsx");
             };
 
+            const topUsers = Object.entries(
+                allData.reduce((acc, curr) => {
+                    if(curr.userEmail) acc[curr.userEmail] = (acc[curr.userEmail] || 0) + 1;
+                    return acc;
+                }, {})
+            ).sort(([, a], [, b]) => b - a).slice(0, 10);
+
+            const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+            const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+
             const chartDataMateria = { labels: ['Cível', 'Crime'], datasets: [{ data: [stats.perMateria.civel || 0, stats.perMateria.crime || 0], backgroundColor: ['#6366F1', '#F59E0B'] }] };
             const chartDataPrazo = { labels: ['5 Dias', '15 Dias'], datasets: [{ data: [stats.perPrazo[5] || 0, stats.perPrazo[15] || 0], backgroundColor: ['#10B981', '#3B82F6'] }] };
             const chartDataByDay = { labels: Object.keys(stats.byDay || {}).reverse(), datasets: [{ label: 'Cálculos por Dia', data: Object.values(stats.byDay || {}).reverse(), backgroundColor: 'rgba(79, 70, 229, 0.8)' }] };
             const chartOptions = { legend: { display: false }, scales: { xAxes: [{ ticks: { beginAtZero: true } }] }};
 
-            if(loading) return <p>A carregar dados...</p>
+            if(loading) return <div className="text-center p-8"><p>A carregar dados...</p></div>
+
+            if (selectedUser) {
+                return (
+                    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 space-y-6">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Perfil do Utilizador</h2>
+                                <p className="text-slate-500 dark:text-slate-400">{selectedUser.email}</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500">ID: {selectedUser.data[0]?.userId}</p>
+                            </div>
+                            <button onClick={() => setSelectedUser(null)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">&larr; Voltar ao Painel</button>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={handleExport} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                Baixar Relatório do Utilizador
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                                    <tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Nº Processo</th><th className="px-6 py-3">Matéria</th><th className="px-6 py-3">Prazo</th></tr>
+                                </thead>
+                                <tbody>
+                                {selectedUser.data.map(item => (
+                                    <tr key={item.id} className="border-b border-slate-200/50 dark:border-slate-700/50">
+                                        <td className="px-6 py-4">{item.timestamp?.toDate().toLocaleString('pt-BR')}</td>
+                                        <td className="px-6 py-4">{item.numeroProcesso}</td>
+                                        <td className="px-6 py-4">{item.materia}</td>
+                                        <td className="px-6 py-4">{item.prazo} dias</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            }
 
              return(
-                 <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 space-y-8">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Painel Administrativo</h2>
+                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Coluna Lateral com Top 10 */}
+                    <div className="lg:col-span-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 self-start">
+                        <h3 className="font-semibold text-lg mb-4 text-slate-800 dark:text-slate-100">Top 10 Utilizadores</h3>
+                        {topUsers.length > 0 ? (
+                            <ul className="space-y-2 text-left">
+                                {topUsers.map(([email, count], index) => (
+                                    <li key={email} className="flex items-center justify-between p-2 bg-slate-100/70 dark:bg-slate-900/50 rounded-md text-sm">
+                                        <span className="font-medium truncate" title={email}>{index + 1}. {email}</span>
+                                        <span className="font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">{count}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum dado de utilização ainda.</p>}
+                    </div>
+
+                    {/* Conteúdo Principal */}
+                    <div className="lg:col-span-3 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 space-y-8">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Painel Administrativo</h2>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Total de Cálculos: {allData.length}</span>
+                    </div>
                     
-                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                            <div className="grid grid-cols-2 gap-2">
-                                <div><label className="text-xs">Data Inicial</label><input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"/></div>
-                                <div><label className="text-xs">Data Final</label><input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"/></div>
-                            </div>
-                            <div><label className="text-xs">Utilizador</label><select name="email" value={filters.email} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todos</option>{allUsers.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
-                            <div><label className="text-xs">Matéria</label><select name="materia" value={filters.materia} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todas</option><option value="civel">Cível</option><option value="crime">Crime</option></select></div>
-                             <div><label className="text-xs">Prazo</label><select name="prazo" value={filters.prazo} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50"><option value="todos">Todos</option><option value="5">5 Dias</option><option value="15">15 Dias</option></select></div>
+                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                            <div><label className="text-xs font-medium text-slate-500">Data Inicial</label><input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"/></div>
+                            <div><label className="text-xs font-medium text-slate-500">Data Final</label><input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"/></div>
+                            <div className="lg:col-span-1"><label className="text-xs font-medium text-slate-500">Utilizador (Email)</label><select name="email" value={filters.email} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todos</option>{allUsers.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                            <div><label className="text-xs font-medium text-slate-500">Matéria</label><select name="materia" value={filters.materia} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todas</option><option value="civel">Cível</option><option value="crime">Crime</option></select></div>
+                            <div><label className="text-xs font-medium text-slate-500">Prazo</label><select name="prazo" value={filters.prazo} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"><option value="todos">Todos</option><option value="5">5 Dias</option><option value="15">15 Dias</option></select></div>
                         </div>
-                         <div className="flex justify-end gap-2 mt-4">
-                             <button onClick={handleFilter} className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Filtrar</button>
-                            <button onClick={handleExport} disabled={filteredData.length === 0} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">Baixar Relatório (Excel)</button>
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                             <label className="text-xs font-medium text-slate-500">Pesquisar por ID do Utilizador</label>
+                             <div className="flex gap-4 items-center">
+                                <input type="text" name="userId" placeholder="Cole o ID do utilizador aqui..." value={filters.userId} onChange={handleFilterChange} className="w-full mt-1 p-2 text-sm rounded-md bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700"/>
+                             </div>
+                        </div>
+                         <div className="flex justify-end gap-2">
+                             <button onClick={handleFilter} className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
+                                Filtrar
+                             </button>
+                            <button onClick={handleExport} disabled={filteredData.length === 0} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                Baixar Relatório
+                            </button>
                         </div>
                     </div>
 
                     {!hasSearched ? (
-                         <div className="text-center p-8 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
-                            <p className="text-slate-500 dark:text-slate-400">Selecione os filtros e clique em "Filtrar" para ver os resultados.</p>
-                        </div>
+                        <div className="text-center p-8 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><p className="text-slate-500 dark:text-slate-400">Selecione os filtros e clique em "Filtrar" para ver os resultados.</p></div>
                     ) : filteredData.length === 0 ? (
                         <div className="text-center p-8 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
                             <p className="text-slate-500 dark:text-slate-400">Nenhum resultado encontrado para os filtros selecionados.</p>
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                                <div className="md:col-span-3 p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
-                                     <h3 className="font-semibold text-center mb-2">Uso por Dia</h3>
-                                     <Bar data={chartDataByDay} options={{ responsive: true }}/>
+                            <div className="space-y-6">
+                                <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg shadow-sm h-64">
+                                     <h3 className="font-semibold text-center mb-2">Utilização por Dia</h3>
+                                     <Bar data={chartDataByDay} options={{ responsive: true, maintainAspectRatio: false }}/>
                                 </div>
-                                 <div className="md:col-span-2 grid grid-cols-1 gap-6">
-                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Matéria</h3><HorizontalBar data={chartDataMateria} options={chartOptions}/></div>
-                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg"><h3 className="font-semibold text-center mb-2">Uso por Prazo</h3><HorizontalBar data={chartDataPrazo} options={chartOptions}/></div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg shadow-sm h-48"><h3 className="font-semibold text-center mb-2">Utilização por Matéria</h3><HorizontalBar data={chartDataMateria} options={{...chartOptions, maintainAspectRatio: false}}/></div>
+                                    <div className="p-4 bg-slate-100/70 dark:bg-slate-900/50 rounded-lg shadow-sm h-48"><h3 className="font-semibold text-center mb-2">Utilização por Prazo</h3><HorizontalBar data={chartDataPrazo} options={{...chartOptions, maintainAspectRatio: false}}/></div>
                                 </div>
                             </div>
                              <div>
@@ -558,24 +751,33 @@
                                 <div className="overflow-x-auto bg-slate-100/70 dark:bg-slate-900/50 rounded-lg">
                                     <table className="w-full text-sm text-left">
                                         <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-200/50 dark:bg-slate-800/50">
-                                            <tr><th className="px-6 py-3">Utilizador</th><th className="px-6 py-3">Nº Processo</th><th className="px-6 py-3">Matéria</th><th className="px-6 py-3">Prazo</th><th className="px-6 py-3">Data</th></tr>
+                                            <tr><th className="px-4 py-3">Utilizador</th><th className="px-4 py-3">ID</th><th className="px-4 py-3">Nº Processo</th><th className="px-4 py-3">Matéria</th><th className="px-4 py-3">Prazo</th><th className="px-4 py-3">Data</th></tr>
                                         </thead>
                                         <tbody>
-                                        {filteredData.map(item => (
+                                        {paginatedData.map(item => (
                                             <tr key={item.id} className="border-b border-slate-200/50 dark:border-slate-700/50">
-                                                <td className="px-6 py-4 font-medium">{item.userEmail}</td>
-                                                <td className="px-6 py-4">{item.numeroProcesso}</td>
-                                                <td className="px-6 py-4">{item.materia}</td>
-                                                <td className="px-6 py-4">{item.prazo} dias</td>
-                                                <td className="px-6 py-4">{item.timestamp?.toDate().toLocaleString('pt-BR')}</td>
+                                                <td className="px-4 py-4 font-medium break-words"><a href="#" onClick={(e) => {e.preventDefault(); handleUserClick(item.userEmail)}} className="text-indigo-600 hover:underline">{item.userEmail}</a></td>
+                                                <td className="px-4 py-4 text-xs text-slate-500 break-words">{item.userId}</td>
+                                                <td className="px-4 py-4 break-words">{item.numeroProcesso}</td>
+                                                <td className="px-4 py-4">{item.materia}</td>
+                                                <td className="px-4 py-4">{item.prazo} dias</td>
+                                                <td className="px-4 py-4">{item.timestamp?.toDate().toLocaleString('pt-BR')}</td>
                                             </tr>
                                         ))}
                                         </tbody>
                                     </table>
                                 </div>
+                                {totalPages > 1 && (
+                                    <div className="flex justify-between items-center mt-4 text-sm">
+                                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 rounded-md bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Anterior</button>
+                                        <span>Página {currentPage} de {totalPages}</span>
+                                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 rounded-md bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Próxima</button>
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
+                    </div>
                 </div>
              );
         };
@@ -645,11 +847,15 @@
             </div>
         );
 
-        const UserIDWatermark = () => {
+        const UserIDWatermark = ({ overlay = false }) => {
              const { user } = useAuth();
              if (!user) return null;
+             if (overlay) {
+                return <div className="watermark-overlay">{user.uid}</div>
+             }
              return (
                 <div className="fixed bottom-2 left-2 text-xs text-slate-400 dark:text-slate-600 z-50 pointer-events-none">
+                    <p>Logado como:</p>
                     ID do Utilizador: {user.uid}
                 </div>
             );
@@ -695,4 +901,3 @@
     </script>
 </body>
 </html>
-
