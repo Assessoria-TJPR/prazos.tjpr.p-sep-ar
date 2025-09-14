@@ -56,7 +56,7 @@
         const db = app ? firebase.firestore() : null;
 
         const { useState, useEffect, useCallback, createContext, useContext } = React;
-        const { Bar, HorizontalBar } = ReactChartjs2;
+        const { Bar, HorizontalBar } = window.ReactChartjs2;
 
         // --- Contexto de Autenticação ---
         const AuthContext = createContext(null);
@@ -70,7 +70,11 @@
                 if (firebaseUser) {
                     setUser(firebaseUser);
                     const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
-                    setIsAdmin(userDoc.exists && userDoc.data().isAdmin === true);
+                    if (userDoc.exists) {
+                        setIsAdmin(userDoc.data().isAdmin === true);
+                    } else {
+                        setIsAdmin(false);
+                    }
                 } else {
                     setUser(null);
                     setIsAdmin(false);
@@ -82,7 +86,11 @@
                     if (user) {
                         setUser(user);
                         const userDoc = await db.collection('users').doc(user.uid).get();
-                        setIsAdmin(userDoc.exists && userDoc.data().isAdmin === true);
+                        if (userDoc.exists) {
+                            setIsAdmin(userDoc.data().isAdmin === true);
+                        } else {
+                            setIsAdmin(false);
+                        }
                     } else {
                         setUser(null);
                         setIsAdmin(false);
@@ -146,6 +154,8 @@
           const [tipoPrazo, setTipoPrazo] = useState('civel');
           const [resultado, setResultado] = useState(null);
           const [error, setError] = useState('');
+          const [dataProtocolo, setDataProtocolo] = useState('');
+          const [minuta, setMinuta] = useState({ intempestivo: false, justificativa: '', texto: '' });
           const { user } = useAuth();
 
           const feriadosMap = {
@@ -238,6 +248,8 @@
           const handleCalcular = () => {
             setError('');
             setResultado(null);
+            setDataProtocolo('');
+            setMinuta({ intempestivo: false, justificativa: '', texto: '' });
             if (!dataDisponibilizacao) {
                 setError('Por favor, preencha a Data de Disponibilização.');
                 return;
@@ -300,6 +312,76 @@
             }
           };
 
+          const handleProtocoloChange = (e) => {
+              const novaDataProtocolo = e.target.value;
+              setDataProtocolo(novaDataProtocolo);
+
+              if (!novaDataProtocolo || !resultado) {
+                  setMinuta({ intempestivo: false, justificativa: '', texto: '' });
+                  return;
+              }
+
+              const dataProtocoloObj = new Date(novaDataProtocolo + 'T00:00:00');
+              const prazoFinalObj = resultado.tipo === 'civel' 
+                  ? resultado.semDecreto.prazoFinal 
+                  : resultado.prazoFinal || resultado.semDecreto.prazoFinal;
+
+              // Zera a hora para comparar apenas as datas
+              prazoFinalObj.setHours(0, 0, 0, 0);
+
+              if (dataProtocoloObj > prazoFinalObj) {
+                  setMinuta({ intempestivo: true, justificativa: '', texto: '', status: 'intempestivo' });
+              } else {
+                  setMinuta({ intempestivo: false, justificativa: '', texto: '', status: 'tempestivo' });
+              }
+          };
+
+          const handleJustificativaChange = (e) => {
+              const justificativa = e.target.value;
+              if (!justificativa) {
+                  setMinuta(prev => ({ ...prev, justificativa: '', texto: '' }));
+                  return;
+              }
+
+              const formata = (data) => data ? new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '[data não informada]';
+              
+              const dataPublicacao = formata(resultado.dataPublicacao || resultado.dataPublicacaoSemDecreto);
+              const inicioPrazo = formata(resultado.inicioPrazo || resultado.inicioPrazoSemDecreto);
+              const terminoPrazo = formata(resultado.semDecreto.prazoFinal);
+              const dataInterposicao = formata(dataProtocolo + 'T00:00:00');
+
+              let textoMinuta = `O recurso é tempestivo. A decisão foi disponibilizada em ${dataPublicacao}, considerada publicada em ${inicioPrazo}, iniciando-se o prazo em ${inicioPrazo} e findando em ${terminoPrazo}. O recurso foi interposto em ${dataInterposicao}, portanto, tempestivo.\n\n`;
+
+              switch(justificativa) {
+                  case 'justa_causa':
+                      textoMinuta += 'Subsidiariamente, caso se entenda pela intempestividade, requer seja a mesma relevada, eis que decorrente de justa causa, consistente em [descrever a justa causa], nos termos do art. 223, §§ 1º e 2º, do CPC.';
+                      break;
+                  case 'feriado_local':
+                      textoMinuta = `Intime-se a parte Recorrente, nos termos dos artigos 1.003, § 6º c/c 224, §1, ambos do Código
+de Processo Civil, para, no prazo de 5 (cinco) dias, comprovar a ocorrência do feriado local ou
+a determinação de suspensão do expediente ou do prazo recursal neste Tribunal de Justiça,
+por meio de documento idôneo, conforme publicado no Diário da Justiça Eletrônico (AgInt no
+AREsp n. 2.734.555/RJ, relator Ministro Humberto Martins, Terceira Turma, julgado em 16/12
+/2024, DJEN de 19/12/2024.).
+Oportunamente, voltem conclusos.
+Curitiba, data da assinatura digital.
+Desembargador HAYTON LEE SWAIN FILHO
+1º Vice-Presidente do Tribunal de Justiça do Estado do Paraná
+AR12345`;
+                      break;
+              }
+              setMinuta(prev => ({ ...prev, justificativa, texto: textoMinuta }));
+          };
+
+          const copiarMinuta = () => {
+              navigator.clipboard.writeText(minuta.texto);
+              alert('Minuta copiada para a área de transferência!');
+          };
+
+          const handleMinutaTextChange = (e) => {
+              setMinuta(prev => ({ ...prev, texto: e.target.value }));
+          };
+
           return (
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50">
                 <UserIDWatermark overlay={true} />
@@ -323,7 +405,12 @@
                 </div>
                 <div>
                     <label htmlFor="data-disponibilizacao" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Data de Disponibilização</label>
-                    <input type="date" id="data-disponibilizacao" value={dataDisponibilizacao} onChange={e => setDataDisponibilizacao(e.target.value)} className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                    <input
+                        type="date"
+                        id="data-disponibilizacao"
+                        value={dataDisponibilizacao}
+                        onChange={e => setDataDisponibilizacao(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
                 </div>
                 <div className="mt-4">
                     <button onClick={handleCalcular} className="w-full flex justify-center items-center bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-md">Calcular Prazo Final</button>
@@ -388,6 +475,44 @@
                                 </div>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em dia não útil.</p>
                             </>
+                        )}
+                    </div>
+                )}
+
+                {resultado && (
+                    <div className="relative mt-6 p-4 border-t border-slate-200 dark:border-slate-700/50 animate-fade-in">
+                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">Verificação de Tempestividade</h3>
+                        <div>
+                            <label htmlFor="data-protocolo" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Data do Protocolo do Recurso</label>
+                            <input type="date" id="data-protocolo" value={dataProtocolo} onChange={handleProtocoloChange} className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                        </div>
+
+                        {minuta.intempestivo && (
+                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
+                                <p className="text-red-800 dark:text-red-300 font-semibold mb-3">Atenção: O recurso parece ser intempestivo. Selecione uma justificativa para gerar a minuta.</p>
+                                <label htmlFor="justificativa" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Justificativa (Modelos)</label>
+                                <select id="justificativa" value={minuta.justificativa} onChange={handleJustificativaChange} className="w-full px-4 py-2 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-600 rounded-lg">
+                                    <option value="">Selecione uma opção...</option>
+                                    <option value="justa_causa">Justa Causa (Art. 223, CPC)</option>
+                                    <option value="feriado_local">Feriado Local / Suspensão de Expediente</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {minuta.status === 'tempestivo' && (
+                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                                <p className="text-green-800 dark:text-green-300 font-semibold">✅ Tempestivo: O recurso foi protocolado dentro do prazo.</p>
+                            </div>
+                        )}
+
+                        {minuta.texto && (
+                            <div className="mt-4 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                                <h4 className="text-md font-bold text-slate-700 dark:text-slate-200 mb-2">Minuta Gerada</h4>
+                                <textarea value={minuta.texto} onChange={handleMinutaTextChange} className="w-full h-48 p-2 text-sm bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                <button onClick={copiarMinuta} className="mt-2 w-full flex justify-center items-center bg-gradient-to-br from-green-500 to-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md">
+                                    Copiar Minuta
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
