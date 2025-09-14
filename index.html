@@ -474,6 +474,7 @@
             const [isResettingPassword, setIsResettingPassword] = useState(false);
             const [error, setError] = useState('');
             const [message, setMessage] = useState('');
+            const [rememberedUser, setRememberedUser] = useState(null);
 
             const handlePasswordReset = async (e) => {
                 e.preventDefault();
@@ -483,37 +484,56 @@
                     setError('Por favor, insira o seu e-mail para redefinir a palavra-passe.');
                     return;
                 }
+                const finalEmail = email.includes('@') ? email : `${email}@tjpr.jus.br`;
                 try {
-                    await auth.sendPasswordResetEmail(email);
+                    await auth.sendPasswordResetEmail(finalEmail);
                     setMessage('Link para redefinição de palavra-passe enviado para o seu e-mail. Verifique a sua caixa de entrada.');
                     setIsResettingPassword(false);
                 } catch (err) {
                      setError('Falha ao enviar e-mail. Verifique se o e-mail está correto e tente novamente.');
                 }
             };
+            
+            useEffect(() => {
+                const lastUserEmail = localStorage.getItem('lastUserEmail');
+                if (lastUserEmail) {
+                    setRememberedUser(lastUserEmail);
+                    setEmail(lastUserEmail.split('@')[0]);
+                }
+            }, []);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setError('');
                 setMessage('');
 
-                if (!email.toLowerCase().endsWith('@tjpr.jus.br')) {
-                    setError("Acesso permitido apenas para emails com domínio @tjpr.jus.br.");
+                // Validação estrita do domínio apenas no cadastro.
+                if (!isLogin && !email.toLowerCase().endsWith('@tjpr.jus.br')) {
+                    setError("Para se cadastrar, é necessário usar um e-mail com domínio @tjpr.jus.br.");
+                    return;
+                }
+
+                if (!email.trim()) {
+                    setError("Por favor, insira o seu nome de utilizador.");
                     return;
                 }
                 if (!auth) {
                     setError("Serviço de autenticação não disponível.");
                     return;
                 }
-                
+
                 try {
+                    // Garante que o domínio @tjpr.jus.br seja adicionado se não estiver presente
+                    const finalEmail = email.includes('@') ? email : `${email}@tjpr.jus.br`;
+
                     await auth.setPersistence(rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
                     if (isLogin) {
-                        await auth.signInWithEmailAndPassword(email, password);
+                        await auth.signInWithEmailAndPassword(finalEmail, password);
+                        localStorage.setItem('lastUserEmail', finalEmail);
                     } else {
-                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        const userCredential = await auth.createUserWithEmailAndPassword(finalEmail, password);
                         await Promise.all([
-                            db.collection('users').doc(userCredential.user.uid).set({ email: email, isAdmin: false }),
+                            db.collection('users').doc(userCredential.user.uid).set({ email: finalEmail, isAdmin: false, displayName: null }),
                             userCredential.user.sendEmailVerification()
                         ]);
                         setMessage("Conta criada! Enviámos um link de verificação para o seu e-mail.");
@@ -538,7 +558,12 @@
                             <h2 className="text-3xl font-bold text-center text-slate-800 dark:text-slate-100">Redefinir Palavra-passe</h2>
                             <p className="text-center text-sm text-slate-500 dark:text-slate-400">Insira o seu e-mail para receber um link de redefinição.</p>
                             <form onSubmit={handlePasswordReset} className="space-y-6">
-                                <input type="email" placeholder="Email (@tjpr.jus.br)" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                <div className="flex items-center bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition">
+                                    <input type="text" placeholder="seu.usuario" value={email} onChange={e => setEmail(e.target.value)} required className="flex-grow px-4 py-3 bg-transparent outline-none" />
+                                    <span className="px-4 py-3 text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-800/50 rounded-r-lg">
+                                        @tjpr.jus.br
+                                    </span>
+                                </div>
                                 <button type="submit" className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">Enviar Link</button>
                             </form>
                             {error && <p className="text-sm text-center text-red-500">{error}</p>}
@@ -552,33 +577,62 @@
                 );
             }
 
+            const handleSwitchAccount = (e) => {
+                e.preventDefault();
+                setRememberedUser(null);
+                setEmail('');
+                setPassword('');
+                setError('');
+                localStorage.removeItem('lastUserEmail');
+            };
+
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900 relative">
                     <div className="w-full max-w-md p-8 space-y-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-lg">
-                        <h2 className="text-3xl font-bold text-center text-slate-800 dark:text-slate-100">{isLogin ? 'Login' : 'Criar Conta'}</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <input type="email" placeholder="Email (@tjpr.jus.br)" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
-                            <input type="password" placeholder="Palavra-passe" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
-                            
-                            <div className="flex items-center justify-between text-sm">
-                                <label className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                    <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"/>
-                                    Lembrar-me
-                                </label>
-                                <a href="#" onClick={(e) => { e.preventDefault(); setIsResettingPassword(true); setError(''); }} className="font-medium text-indigo-600 hover:text-indigo-500">Esqueceu a sua palavra-passe?</a>
-                            </div>
-
-                            <button type="submit" className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">
-                                {isLogin ? 'Entrar' : 'Registar'}
-                            </button>
-                        </form>
-                        {error && <p className="text-sm text-center text-red-500 pt-2">{error}</p>}
-                        {message && <p className="text-sm text-center text-green-500 pt-2">{message}</p>}
-                        <p className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); setError(''); }} className="font-medium text-indigo-600 hover:text-indigo-500">
-                                {isLogin ? 'Não tem uma conta? Crie uma aqui.' : 'Já tem uma conta? Faça login.'}
-                            </a>
-                        </p>
+                        {rememberedUser && isLogin ? (
+                            <>
+                                <h2 className="text-3xl font-bold text-center text-slate-800 dark:text-slate-100">Bem-vindo de volta!</h2>
+                                <div className="text-center p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100/50 dark:bg-slate-900/50">
+                                    <p className="font-medium text-slate-700 dark:text-slate-200">{rememberedUser}</p>
+                                </div>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <input type="password" placeholder="Palavra-passe" value={password} onChange={e => setPassword(e.target.value)} required autoFocus className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                    <div className="flex items-center justify-between text-sm">
+                                        <label className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"/>Lembrar-me</label>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); setIsResettingPassword(true); setError(''); }} className="font-medium text-indigo-600 hover:text-indigo-500">Esqueceu a sua palavra-passe?</a>
+                                    </div>
+                                    <button type="submit" className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">Entrar</button>
+                                </form>
+                                {error && <p className="text-sm text-center text-red-500 pt-2">{error}</p>}
+                                {message && !error && <p className="text-sm text-center text-green-500 pt-2">{message}</p>}
+                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
+                                    <a href="#" onClick={handleSwitchAccount} className="font-medium text-indigo-600 hover:text-indigo-500">Não é você? Use outra conta</a>
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="text-3xl font-bold text-center text-slate-800 dark:text-slate-100">{isLogin ? 'Login' : 'Criar Conta'}</h2>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="flex items-center bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition">
+                                        <input type="text" placeholder="seu.usuario" value={email} onChange={e => setEmail(e.target.value)} required className="flex-grow px-4 py-3 bg-transparent outline-none" />
+                                        <span className="px-4 py-3 text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-800/50 rounded-r-lg">@tjpr.jus.br</span>
+                                    </div>
+                                    <input type="password" placeholder="Palavra-passe" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                    <div className="flex items-center justify-between text-sm">
+                                        <label className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"/>Lembrar-me</label>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); setIsResettingPassword(true); setError(''); }} className="font-medium text-indigo-600 hover:text-indigo-500">Esqueceu a sua palavra-passe?</a>
+                                    </div>
+                                    <button type="submit" className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">{isLogin ? 'Entrar' : 'Registar'}</button>
+                                </form>
+                                {error && <p className="text-sm text-center text-red-500 pt-2">{error}</p>}
+                                {message && <p className="text-sm text-center text-green-500 pt-2">{message}</p>}
+                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
+                                    <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); setError(''); }} className="font-medium text-indigo-600 hover:text-indigo-500">
+                                        {isLogin ? 'Não tem uma conta? Crie uma aqui.' : 'Já tem uma conta? Faça login.'}
+                                    </a>
+                                </p>
+                            </>
+                        )}
                     </div>
                      <CreditsWatermark />
                 </div>
