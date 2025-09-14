@@ -149,10 +149,10 @@
           const { user } = useAuth();
 
           const feriadosMap = {
-            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-25': 'N° 645/2024 - Natal',
+            '2025-01-01': 'N° 645/2024 - Confraternização Universal', '2025-03-04': 'N° 645/2024 - Carnaval', '2025-04-18': 'N° 645/2024 - Paixão de Cristo', '2025-04-21': 'N° 645/2024 - Tiradentes', '2025-05-01': 'N° 645/2024 - Dia do Trabalho', '2025-09-07': 'N° 645/2024 - Independência do Brasil', '2025-10-12': 'N° 645/2024 - Nossa Senhora Aparecida', '2025-10-28': 'N° 645/2024 - Dia do Funcionário Público', '2025-11-02': 'N° 645/2024 - Finados', '2025-11-15': 'N° 645/2024 - Proclamação da República', '2025-11-20': 'N° 645/2024 - Dia Nacional de Zumbi e da Consciência Negra', '2025-12-08': 'N° 645/2024 - Dia da Justiça', '2025-12-25': 'N° 645/2024 - Natal',
           };
           const decretosMap = {
-            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
+            '2025-03-03': 'N° 645/2024 - Véspera de Carnaval', '2025-04-17': 'N° 645/2024 - Quinta-feira Santa', '2025-05-02': 'N° 127/2025 - P-SEP - Decreto', '2025-06-19': 'N° 645/2024 - Corpus Christi', '2025-06-20': 'N° 645/2024 - Feriado Estipulado pelo CNJ', '2025-09-08': 'N° 645/2024 - Padroeira de Curitiba', '2025-10-27': 'N° 127/2025 - P-SEP - Decreto', '2025-11-21': 'N° 127/2025 - P-SEP - Decreto', '2025-12-19': 'N° 645/2024 - Emancipação Política do Paraná', '2025-12-24': 'N° 645/2024 - Véspera de Natal', '2025-12-31': 'N° 645/2024 - Véspera de Ano Novo',
           };
           const instabilidadeMap = {
             '2025-01-31': 'Nº 102/2025 - Instabilidade do Projudi', '2025-04-04': 'Nº 207/2025 - Instabilidade do Projudi', '2025-05-23': 'Nº 279/2025 - Instabilidade do Projudi', '2025-05-29': 'Nº 288/2025 - Instabilidade do Projudi',
@@ -179,6 +179,14 @@
               return proximoDia;
           };
 
+          const getProximoDiaUtilSemDecreto = (data) => {
+              const proximoDia = new Date(data.getTime());
+              do {
+                  proximoDia.setDate(proximoDia.getDate() + 1);
+              } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false));
+              return proximoDia;
+          };
+
           const getProximoDiaUtilSemFeriado = (data) => {
               const proximoDia = new Date(data.getTime());
               do { proximoDia.setDate(proximoDia.getDate() + 1); } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false));
@@ -202,7 +210,16 @@
                     diasUteisContados++;
                 }
             }
-            return { prazoFinal: dataCorrente, diasNaoUteis: diasNaoUteisEncontrados };
+
+            let prazoFinalAjustado = dataCorrente;
+            const dataFinalStr = prazoFinalAjustado.toISOString().split('T')[0];
+            if (dataFinalStr === '2025-06-19' || dataFinalStr === '2025-06-20') {
+                prazoFinalAjustado = new Date('2025-06-23T00:00:00');
+                // Adiciona um alerta informativo se necessário, ou apenas ajusta a data.
+                // O alerta já é tratado na lógica de 'crime', para 'civel' podemos apenas ajustar a data.
+            }
+
+            return { prazoFinal: prazoFinalAjustado, diasNaoUteis: diasNaoUteisEncontrados };
           };
 
           const logUsage = () => {
@@ -232,37 +249,50 @@
                 if (tipoPrazo === 'civel') {
                     const dataPublicacao = getProximoDiaUtil(inicioDisponibilizacao);
                     const inicioDoPrazo = getProximoDiaUtil(dataPublicacao);
+                    const dataPublicacaoSemDecreto = getProximoDiaUtilSemDecreto(inicioDisponibilizacao);
+                    const inicioDoPrazoSemDecreto = getProximoDiaUtilSemDecreto(dataPublicacaoSemDecreto);
+
                     const resultadoComDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, true);
                     const resultadoSemDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, false);
-                    const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime();
+                    
+                    const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime() || inicioDoPrazo.getTime() !== inicioDoPrazoSemDecreto.getTime();
                     setResultado({ dataPublicacao, inicioPrazo: inicioDoPrazo, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel', alertas: [] });
                 } else { // Lógica para Crime (dias corridos)
-                    const dataPublicacao = getProximoDiaUtil(inicioDisponibilizacao);
-                    const dataIntimacao = getProximoDiaUtil(dataPublicacao);
-                    const alertas = [];
-                    
-                    // A contagem começa no dia da intimação (inclusive).
-                    // Adicionamos o prazo - 1, pois o dia da intimação já conta como o primeiro dia.
-                    const prazoFinalBruto = new Date(dataIntimacao.getTime());
-                    prazoFinalBruto.setDate(prazoFinalBruto.getDate() + (prazoNumerico - 1));
-                    
-                    let prazoFinalAjustado = new Date(prazoFinalBruto.getTime());
-                    const motivoDiaNaoUtil = getMotivoDiaNaoUtil(prazoFinalAjustado, true);
-                    const isFimDeSemana = prazoFinalAjustado.getDay() === 0 || prazoFinalAjustado.getDay() === 6;
+                    const dataPublicacaoComDecreto = getProximoDiaUtil(inicioDisponibilizacao);
+                    const dataIntimacaoComDecreto = getProximoDiaUtil(dataPublicacaoComDecreto);
 
-                    if (isFimDeSemana || motivoDiaNaoUtil) {
-                        const dataFinalStr = prazoFinalAjustado.toISOString().split('T')[0];
-                        if (dataFinalStr === '2025-06-19' || dataFinalStr === '2025-06-20') {
-                            prazoFinalAjustado = new Date('2025-06-23T00:00:00');
-                            alertas.push({ tipo: 'info', mensagem: 'Prazo prorrogado para 23/06/2025 com dispensa de comprovação (exceção para Recursos Especiais).' });
-                        } else {
-                            prazoFinalAjustado = getProximoDiaUtil(prazoFinalAjustado);
-                            if (motivoDiaNaoUtil && (motivoDiaNaoUtil.tipo === 'decreto' || motivoDiaNaoUtil.tipo === 'instabilidade')) {
-                                alertas.push({ tipo: 'aviso', mensagem: `O prazo foi prorrogado devido a "${motivoDiaNaoUtil.motivo}". É necessária a comprovação.` });
+                    const dataPublicacaoSemDecreto = getProximoDiaUtilSemDecreto(inicioDisponibilizacao);
+                    const dataIntimacaoSemDecreto = getProximoDiaUtilSemDecreto(dataPublicacaoSemDecreto);
+
+                    const calcularPrazoCrime = (dataIntimacao, considerarDecretos) => {
+                        const alertas = [];
+                        const prazoFinalBruto = new Date(dataIntimacao.getTime());
+                        prazoFinalBruto.setDate(prazoFinalBruto.getDate() + (prazoNumerico - 1));
+                        
+                        let prazoFinalAjustado = new Date(prazoFinalBruto.getTime());
+                        const motivoDiaNaoUtil = getMotivoDiaNaoUtil(prazoFinalAjustado, considerarDecretos);
+                        const isFimDeSemana = prazoFinalAjustado.getDay() === 0 || prazoFinalAjustado.getDay() === 6;
+
+                        if (isFimDeSemana || motivoDiaNaoUtil) {
+                            const dataFinalStr = prazoFinalAjustado.toISOString().split('T')[0];
+                            if (dataFinalStr === '2025-06-19' || dataFinalStr === '2025-06-20') {
+                                prazoFinalAjustado = new Date('2025-06-23T00:00:00');
+                                alertas.push({ tipo: 'info', mensagem: 'Prazo prorrogado para 23/06/2025 com dispensa de comprovação (exceção para Recursos Especiais).' });
+                            } else {
+                                prazoFinalAjustado = considerarDecretos ? getProximoDiaUtil(prazoFinalAjustado) : getProximoDiaUtilSemDecreto(prazoFinalAjustado);
+                                if (motivoDiaNaoUtil && (motivoDiaNaoUtil.tipo === 'decreto' || motivoDiaNaoUtil.tipo === 'instabilidade')) {
+                                    alertas.push({ tipo: 'aviso', mensagem: `O prazo foi prorrogado devido a "${motivoDiaNaoUtil.motivo}". É necessária a comprovação.` });
+                                }
                             }
                         }
-                    }
-                    setResultado({ dataPublicacao, inicioPrazo: dataIntimacao, prazoFinal: prazoFinalAjustado, prazo: prazoNumerico, tipo: 'crime', alertas: alertas });
+                        return { prazoFinal: prazoFinalAjustado, alertas: alertas };
+                    };
+
+                    const resultadoComDecreto = calcularPrazoCrime(dataIntimacaoComDecreto, true);
+                    const resultadoSemDecreto = calcularPrazoCrime(dataIntimacaoSemDecreto, false);
+                    const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime() || dataIntimacaoComDecreto.getTime() !== dataIntimacaoSemDecreto.getTime();
+
+                    setResultado({ dataPublicacaoComDecreto, dataPublicacaoSemDecreto, inicioPrazoComDecreto: dataIntimacaoComDecreto, inicioPrazoSemDecreto: dataIntimacaoSemDecreto, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'crime' });
                 }
                 logUsage();
             } catch(e) {
@@ -322,26 +352,42 @@
                                                 <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                                 <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis, <strong>comprovando o decreto</strong>, é:</p>
                                                 <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
+                                                {resultado.comDecreto.diasNaoUteis.length > 0 && (
+                                                    <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Dias não úteis considerados (com decreto):</p><ul className="text-xs space-y-1"><GroupedDiasNaoUteis dias={resultado.comDecreto.diasNaoUteis} /></ul></div>
+                                                )}
                                                 {resultado.comDecreto.diasNaoUteis.filter(d => d.tipo === 'decreto' || d.tipo === 'instabilidade').length > 0 && (
-                                                    <div className="mt-4 text-left"><p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Suspensões que precisam ser comprovadas:</p><ul className="text-xs space-y-1"><GroupedDiasNaoUteis dias={resultado.comDecreto.diasNaoUteis.filter(d => d.tipo === 'decreto' || d.tipo === 'instabilidade')} /></ul></div>
+                                                    <div className="mt-2 text-left border-t border-slate-300 dark:border-slate-600 pt-2"><p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1">Suspensões que precisam ser comprovadas:</p><ul className="text-xs space-y-1"><GroupedDiasNaoUteis dias={resultado.comDecreto.diasNaoUteis.filter(d => d.tipo === 'decreto' || d.tipo === 'instabilidade')} /></ul></div>
                                                 )}
                                             </div>
                                         )}
                                 </div>
                             </>
                         ) : (
-                            <div className="text-center">
-                                {resultado.alertas.map((alerta, index) => (
-                                    <div key={index} className={`p-4 mb-4 text-sm rounded-lg ${alerta.tipo === 'aviso' ? 'text-orange-800 bg-orange-50 dark:bg-gray-800 dark:text-orange-400' : 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400'}`} role="alert">
+                            <>
+                                {resultado.decretoImpactou && ( <div className="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-50 dark:bg-gray-800 dark:text-orange-400" role="alert"><span className="font-medium">Atenção!</span> Foi identificado um decreto de suspensão de prazo no período. Verifique se o advogado juntou o decreto aos autos para comprovar a prorrogação.</div> )}
+                                {[...(resultado.comDecreto.alertas || []), ...(resultado.semDecreto.alertas || [])].map((alerta, index) => (
+                                     <div key={index} className={`p-4 mb-4 text-sm rounded-lg ${alerta.tipo === 'aviso' ? 'text-orange-800 bg-orange-50 dark:bg-gray-800 dark:text-orange-400' : 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400'}`} role="alert">
                                         <span className="font-medium">{alerta.tipo === 'aviso' ? 'Atenção! ' : 'Info: '}</span>{alerta.mensagem}
-                                    </div>
+                                     </div>
                                 ))}
-                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Prazo Final (Crime)</h3>
-                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
-                                <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em dia não útil.</p>
-                            </div>
+                                <div className={`grid grid-cols-1 ${resultado.decretoImpactou ? 'md:grid-cols-2' : ''} gap-4`}>
+                                    <div className={resultado.decretoImpactou ? 'border-r md:pr-4' : ''}>
+                                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">{resultado.decretoImpactou ? "Cenário 1: Sem Decreto" : "Prazo Final"}</h3>
+                                        <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacaoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início em {resultado.inicioPrazoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                        <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
+                                        <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.semDecreto.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                    </div>
+                                    {resultado.decretoImpactou && (
+                                        <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4 pt-4 md:pt-0">
+                                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Cenário 2: Com Decreto</h3>
+                                            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1">Publicação em {resultado.dataPublicacaoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início em {resultado.inicioPrazoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                            <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos, <strong>comprovando o decreto</strong>, é:</p>
+                                            <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 text-center">* O prazo final é prorrogado para o próximo dia útil se cair em dia não útil.</p>
+                            </>
                         )}
                     </div>
                 )}
@@ -445,7 +491,7 @@
                      setError('Falha ao enviar e-mail. Verifique se o e-mail está correto e tente novamente.');
                 }
             };
-            
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setError('');
@@ -479,7 +525,8 @@
                         case 'auth/wrong-password': setError('Palavra-passe incorreta. Tente novamente ou redefina a sua palavra-passe.'); break;
                         case 'auth/weak-password': setError('A palavra-passe deve ter pelo menos 6 caracteres.'); break;
                         case 'auth/invalid-email': setError('O formato do e-mail é inválido.'); break;
-                        default: setError('Ocorreu um erro. Tente novamente.'); console.error("Erro de autenticação:", err);
+                        default: setError('Ocorreu um erro. Tente novamente.'); 
+                            console.error("Erro de autenticação:", err);
                     }
                 }
             };
