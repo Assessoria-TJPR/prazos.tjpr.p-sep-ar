@@ -172,7 +172,7 @@
             const dateString = date.toISOString().split('T')[0];
             if (feriadosMap[dateString]) return { motivo: feriadosMap[dateString], tipo: 'feriado' };
             if (considerarDecretos) {
-                if (decretosMap[dateString]) return { motivo: decretosMap[dateString], tipo: 'decreto' };
+                if (decretosMap[dateString]) return { motivo: decretosMap[dateString], tipo: 'Decreto Local TJPR' };
                 if (instabilidadeMap[dateString]) return { motivo: instabilidadeMap[dateString], tipo: 'instabilidade' };
             }
             const month = date.getMonth() + 1;
