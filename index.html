@@ -307,9 +307,11 @@
 
                     const calcularPrazoCrime = (dataIntimacao, considerarDecretos) => {
                         // Para prazos penais (dias corridos), adicionamos o número de dias ao início do prazo.
-                        // O prazo começa a contar no dia seguinte ao da intimação.
+                        // O prazo começa a contar no dia seguinte ao da intimação (exclui-se o dia do começo e inclui-se o do vencimento - Art. 798, § 1º, CPP).
+                        // Para somar N dias a uma data, efetivamente somamos N-1 dias para encontrar o dia final, pois o primeiro dia da contagem já é "dia 1".
+                        // Ex: Início 10/01, prazo 5 dias. Contagem: 11, 12, 13, 14, 15. O dia final é 15/01. Data(10) + 5 = Data(15).
                         const prazoFinal = new Date(dataIntimacao.getTime());
-                        prazoFinal.setDate(prazoFinal.getDate() + prazoNumerico);
+                        prazoFinal.setDate(prazoFinal.getDate() + prazoNumerico -1);
 
                         // Agora, verificamos se o dia final do prazo é um dia útil.
                         // Se não for, o prazo é prorrogado para o próximo dia útil.
