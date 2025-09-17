@@ -636,13 +636,16 @@
                         localStorage.setItem('lastUserEmail', finalEmail);
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(finalEmail, password);
-                        await Promise.all([
-                            db.collection('users').doc(userCredential.user.uid).set({ email: finalEmail, isAdmin: false, displayName: displayName.trim() }),
-                            userCredential.user.sendEmailVerification()
-                        ]);
+                        // Envia o e-mail de verificação primeiro para garantir que o usuário possa validar a conta.
+                        await userCredential.user.sendEmailVerification();
+                        // Em seguida, salva os dados do usuário no Firestore.
+                        await db.collection('users').doc(userCredential.user.uid).set({
+                            email: finalEmail, isAdmin: false, displayName: displayName.trim() 
+                        });
                         setMessage("Conta criada! Enviámos um link de verificação para o seu e-mail.");
                     }
                 } catch (err) {
+                    if (!isLogin) auth.signOut(); // Garante que o usuário seja deslogado se o cadastro falhar.
                     switch (err.code) {
                         case 'auth/email-already-in-use': setError('Este e-mail já está registado. Tente fazer login ou redefinir a sua palavra-passe.'); break;
                         case 'auth/user-not-found': setError('Nenhuma conta encontrada com este e-mail. Verifique o e-mail ou crie uma nova conta.'); break;
@@ -787,6 +790,9 @@
                             Enviámos um link de verificação para <strong>{user?.email}</strong>. Por favor, clique no link para ativar a sua conta.
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">(Se não encontrar, verifique a sua pasta de spam)</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            A entrega do e-mail pode levar alguns minutos.
+                        </p>
                         <div className="space-y-4">
                             {showButton ? (
                                 <button onClick={handleResend} className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">
