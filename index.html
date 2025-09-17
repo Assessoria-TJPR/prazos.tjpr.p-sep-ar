@@ -756,16 +756,31 @@
             const { user } = useAuth();
             const [message, setMessage] = useState('');
             const [error, setError] = useState('');
+            const [cooldown, setCooldown] = useState(0);
+
+            useEffect(() => {
+                if (cooldown > 0) {
+                    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+                    return () => clearTimeout(timer);
+                }
+            }, [cooldown]);
 
             const handleResend = async () => {
                 setMessage('');
                 setError('');
-                if (!user) return;
+                if (!user || cooldown > 0) return;
+
                 try {
                     await user.sendEmailVerification();
                     setMessage('Um novo e-mail de verificação foi enviado.');
+                    setCooldown(60); // Inicia cooldown de 60 segundos
                 } catch (err) {
-                    setError(err.message);
+                    if (err.code === 'auth/too-many-requests') {
+                        setError('Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.');
+                    } else {
+                        setError('Falha ao reenviar o e-mail. Tente novamente mais tarde.');
+                    }
+                    setCooldown(60); // Inicia cooldown mesmo em caso de erro para evitar spam
                 }
             };
             
@@ -778,8 +793,8 @@
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">(Se não encontrar, verifique a sua pasta de spam)</p>
                         <div className="space-y-4">
-                            <button onClick={handleResend} className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md">
-                                Reenviar E-mail
+                            <button onClick={handleResend} disabled={cooldown > 0} className="w-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                                {cooldown > 0 ? `Aguarde ${cooldown}s` : 'Reenviar E-mail'}
                             </button>
                             <button onClick={() => auth.signOut()} className="w-full bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg hover:bg-slate-300 transition-all duration-300">
                                 Voltar para o Login
