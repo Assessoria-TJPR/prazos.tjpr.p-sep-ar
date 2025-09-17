@@ -619,12 +619,6 @@
                 setError('');
                 setMessage('');
 
-                // Validação estrita do domínio apenas no cadastro.
-                if (!isLogin && !email.toLowerCase().endsWith('@tjpr.jus.br')) {
-                    setError("Para se cadastrar, é necessário usar um e-mail com domínio @tjpr.jus.br.");
-                    return;
-                }
-
                 if (!email.trim()) {
                     setError("Por favor, insira o seu nome de utilizador.");
                     return;
@@ -637,6 +631,12 @@
                 try {
                     // Garante que o domínio @tjpr.jus.br seja adicionado se não estiver presente
                     const finalEmail = email.includes('@') ? email : `${email}@tjpr.jus.br`;
+
+                    // Validação estrita do domínio apenas no cadastro, agora com o e-mail final.
+                    if (!isLogin && !finalEmail.toLowerCase().endsWith('@tjpr.jus.br')) {
+                        setError("Para se cadastrar, é necessário usar um e-mail com domínio @tjpr.jus.br.");
+                        return;
+                    }
 
                     await auth.setPersistence(rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
                     if (isLogin) {
