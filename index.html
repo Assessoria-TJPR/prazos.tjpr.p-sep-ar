@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modulo Prazos - P-SEP-AR - TJPR</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
     <script>
         tailwind.config = {
             darkMode: 'class', // Ativa o modo escuro via classe no HTML
@@ -23,12 +24,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2@2.11.2/dist/react-chartjs-2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Biblioteca para gerar DOCX -->
+    <!-- Bibliotecas de geração de DOCX removidas para usar abordagem de HTML para DOC -->
+    <!-- Biblioteca para salvar arquivos (alternativa robusta para download) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
 </head>
-<body>
+<body class="bg-gradient-to-br from-slate-50 to-slate-200 text-slate-800 dark:from-slate-800 dark:to-slate-900 dark:text-slate-200 overflow-hidden">
+    <!-- 
+        A classe `overflow-hidden` no body impede a barra de rolagem do navegador,
+        deixando o controle de rolagem para o componente React.
+    -->
     <div id="root"></div>
 
-    <!-- O Babel irá transpilar este script -->
-    <script type="text/babel" src="scripts.js"></script>
+    <!-- O Babel irá transpilar este arquivo .js externo -->
+    <script src="app.js" type="text/babel" data-type="module"></script>
 </body>
 </html>
