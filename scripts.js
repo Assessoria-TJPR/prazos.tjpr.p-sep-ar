@@ -200,12 +200,12 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
   const [error, setError] = useState('');
   const { user } = useAuth();
 
-  const getMotivoDiaNaoUtil = (date, considerarDecretos) => {
+  const getMotivoDiaNaoUtil = (date, considerarDecretos, ignorarInstabilidade = false) => {
     const dateString = date.toISOString().split('T')[0];
     if (feriadosMap[dateString]) return { motivo: feriadosMap[dateString], tipo: 'feriado' };
     if (considerarDecretos) {
         if (decretosMap[dateString]) return { motivo: decretosMap[dateString], tipo: 'decreto' };
-        if (instabilidadeMap[dateString]) return { motivo: instabilidadeMap[dateString], tipo: 'instabilidade' };
+        if (instabilidadeMap[dateString] && !ignorarInstabilidade) return { motivo: instabilidadeMap[dateString], tipo: 'instabilidade' };
     }
     const month = date.getMonth() + 1;
     const day = date.getDate();
@@ -216,11 +216,11 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
     return null;
   };
   
-  const getProximoDiaUtil = (data) => {
+  const getProximoDiaUtil = (data, ignorarInstabilidade = false) => {
       const proximoDia = new Date(data.getTime());
       do {
           proximoDia.setDate(proximoDia.getDate() + 1);
-      } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, true));
+      } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, true, ignorarInstabilidade));
       return proximoDia;
   };
 
@@ -228,38 +228,41 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
       const proximoDia = new Date(data.getTime());
       do {
           proximoDia.setDate(proximoDia.getDate() + 1);
-      } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false));
-      return proximoDia;
-  };
-
-  const getProximoDiaUtilSemFeriado = (data) => {
-      const proximoDia = new Date(data.getTime());
-      do { proximoDia.setDate(proximoDia.getDate() + 1); } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false));
+      } while (proximoDia.getDay() === 0 || proximoDia.getDay() === 6 || getMotivoDiaNaoUtil(proximoDia, false, true));
       return proximoDia;
   };
 
   const calcularPrazoFinalDiasUteis = (inicioDoPrazo, prazo, considerarDecretos) => {
     let diasUteisContados = 0;
     const diasNaoUteisEncontrados = [];
-    // Começa a contagem a partir do dia anterior ao início do prazo para incluir o primeiro dia.
     const dataCorrente = new Date(inicioDoPrazo);
     dataCorrente.setDate(dataCorrente.getDate() - 1);
 
     while (diasUteisContados < prazo) {
         dataCorrente.setDate(dataCorrente.getDate() + 1);
         const diaDaSemana = dataCorrente.getDay();
-        const infoDiaNaoUtil = getMotivoDiaNaoUtil(dataCorrente, considerarDecretos);
+        // Para contagem de dias úteis, instabilidade no meio do prazo não suspende.
+        const infoDiaNaoUtil = getMotivoDiaNaoUtil(dataCorrente, considerarDecretos, true);
         if (diaDaSemana === 0 || diaDaSemana === 6 || infoDiaNaoUtil) {
             if (infoDiaNaoUtil) diasNaoUteisEncontrados.push({ data: new Date(dataCorrente.getTime()), ...infoDiaNaoUtil });
         } else {
             diasUteisContados++;
         }
     }
+    
+    let prazoFinalAjustado = new Date(dataCorrente.getTime());
+    // A instabilidade prorroga o prazo se o vencimento cair nesse dia.
+    // Verificamos feriados, decretos e instabilidades no dia do vencimento.
+    let motivoProrrogacaoFinal;
+    while (motivoProrrogacaoFinal = getMotivoDiaNaoUtil(prazoFinalAjustado, considerarDecretos, false)) {
+        diasNaoUteisEncontrados.push({ data: new Date(prazoFinalAjustado.getTime()), ...motivoProrrogacaoFinal });
+        prazoFinalAjustado.setDate(prazoFinalAjustado.getDate() + 1);
+    }
 
-    let prazoFinalAjustado = dataCorrente;
+    // Regra específica para Corpus Christi (não é feriado nacional)
     const dataFinalStr = prazoFinalAjustado.toISOString().split('T')[0];
-    if (dataFinalStr === '2025-06-19' || dataFinalStr === '2025-06-20') {
-        prazoFinalAjustado = new Date('2025-06-23T00:00:00');
+    if (['2025-06-19', '2025-06-20', '2025-09-02'].includes(dataFinalStr)) {
+        prazoFinalAjustado = getProximoDiaUtil(prazoFinalAjustado);
         // Adiciona um alerta informativo se necessário, ou apenas ajusta a data.
         // O alerta já é tratado na lógica de 'crime', para 'civel' podemos apenas ajustar a data.
     }
@@ -289,10 +292,11 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
         return;
     }
     try {
-        const dataLimite = new Date('2025-05-16T00:00:00');
-        const dataInserida = new Date(dataDisponibilizacao + 'T00:00:00');
+        const dataLimite = new Date('2025-05-16');
+        const [ano, mes, dia] = dataDisponibilizacao.split('-').map(Number);
+        const dataInserida = new Date(ano, mes - 1, dia);
 
-        if (dataInserida < dataLimite) {
+        if (dataInserida.getTime() < dataLimite.getTime()) {
             setError('Para datas anteriores a 16/05/2025, a consulta de intimação e a contagem do respectivo prazo devem ser realizadas diretamente no sistema Projudi.');
             return;
         }
@@ -301,16 +305,18 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
         const prazoNumerico = prazoSelecionado;
         
         if (tipoPrazo === 'civel') {
-            const dataPublicacao = getProximoDiaUtil(inicioDisponibilizacao);
-            const inicioDoPrazo = getProximoDiaUtil(dataPublicacao);
+            const dataPublicacaoComDecreto = getProximoDiaUtil(inicioDisponibilizacao, false);
+            const inicioDoPrazoComDecreto = getProximoDiaUtil(dataPublicacaoComDecreto, false);
+
             const dataPublicacaoSemDecreto = getProximoDiaUtilSemDecreto(inicioDisponibilizacao);
             const inicioDoPrazoSemDecreto = getProximoDiaUtilSemDecreto(dataPublicacaoSemDecreto);
 
-            const resultadoComDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazo, prazoNumerico, true);
-            const resultadoSemDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazoSemDecreto, prazoNumerico, false);
+            const resultadoComDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazoComDecreto, prazoNumerico, true);
+            const resultadoSemDecreto = calcularPrazoFinalDiasUteis(inicioDoPrazoSemDecreto, prazoNumerico, false); // false para não considerar decretos/instabilidade
             
-            const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime() || inicioDoPrazo.getTime() !== inicioDoPrazoSemDecreto.getTime();
-            setResultado({ dataPublicacao, inicioPrazo: inicioDoPrazo, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel', alertas: [] });
+            // O impacto ocorre se a data de início do prazo ou a data final forem diferentes.
+            const decretoImpactou = inicioDoPrazoComDecreto.getTime() !== inicioDoPrazoSemDecreto.getTime() || resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime();
+            setResultado({ dataPublicacaoComDecreto, dataPublicacaoSemDecreto, inicioPrazoComDecreto: inicioDoPrazoComDecreto, inicioPrazoSemDecreto: inicioDoPrazoSemDecreto, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'civel', alertas: [] });
         } else { // Lógica para Crime (dias corridos)
             const dataPublicacaoComDecreto = getProximoDiaUtil(inicioDisponibilizacao);
             const dataIntimacaoComDecreto = getProximoDiaUtil(dataPublicacaoComDecreto);
@@ -338,13 +344,14 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
 
             const resultadoComDecreto = calcularPrazoCrime(dataIntimacaoComDecreto, true);
             const resultadoSemDecreto = calcularPrazoCrime(dataIntimacaoSemDecreto, false);
-            const decretoImpactou = resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime() || dataIntimacaoComDecreto.getTime() !== dataIntimacaoSemDecreto.getTime();
-
+            
+            // O impacto ocorre se a data de início do prazo (intimação) ou a data final forem diferentes.
+            const decretoImpactou = dataIntimacaoComDecreto.getTime() !== dataIntimacaoSemDecreto.getTime() || resultadoComDecreto.prazoFinal.getTime() !== resultadoSemDecreto.prazoFinal.getTime();
             setResultado({ dataPublicacaoComDecreto, dataPublicacaoSemDecreto, inicioPrazoComDecreto: dataIntimacaoComDecreto, inicioPrazoSemDecreto: dataIntimacaoSemDecreto, comDecreto: resultadoComDecreto, semDecreto: resultadoSemDecreto, decretoImpactou: decretoImpactou, prazo: prazoNumerico, tipo: 'crime' });
         }
         logUsage();
     } catch(e) {
-        setError('Data inválida. Use o formato AAAA-MM-DD.');
+        setError('Data inválida. Por favor, selecione uma data válida no calendário.');
     }
   };
 
@@ -391,13 +398,13 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
         {resultado && (
             <div className="relative mt-6 p-4 border-t border-slate-200 dark:border-slate-700/50 animate-fade-in">
                 <UserIDWatermark overlay={true} />
-                {resultado.tipo === 'civel' ? (
+                {resultado.tipo === 'civel' ? ( // Resultado para Cível
                     <>
                         {resultado.decretoImpactou && ( <div className="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-50 dark:bg-gray-800 dark:text-orange-400" role="alert"><span className="font-medium">Atenção!</span> Foi identificado um decreto de suspensão de prazo no período. Verifique se o advogado juntou o decreto aos autos para comprovar a prorrogação.</div> )}
                         <div className={`grid grid-cols-1 ${resultado.decretoImpactou ? 'md:grid-cols-2' : ''} gap-4`}>
                                 <div className={resultado.decretoImpactou ? 'border-r md:pr-4' : ''}>
                                     <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">{resultado.decretoImpactou ? "Cenário 1: Sem Decreto" : "Prazo Final"}</h3>
-                                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacaoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                      <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis é:</p>
                                      <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.semDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
                                      {resultado.semDecreto.diasNaoUteis.length > 0 && (
@@ -407,7 +414,7 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
                                 {resultado.decretoImpactou && (
                                     <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4 pt-4 md:pt-0">
                                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Cenário 2: Com Decreto</h3>
-                                        <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacao.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazo.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                        <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacaoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início do prazo em {resultado.inicioPrazoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                                         <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis, <strong>comprovando o decreto</strong>, é:</p>
                                         <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR')}</p>
                                         {resultado.comDecreto.diasNaoUteis.some(d => ['2025-06-19', '2025-06-20'].includes(d.data.toISOString().split('T')[0])) && (
@@ -420,25 +427,23 @@ const CalculadoraDePrazo = ({ numeroProcesso }) => {
                                 )}
                         </div>
                     </>
-                ) : (
+                ) : ( // Resultado para Crime
                     <>
                         {resultado.decretoImpactou && ( <div className="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-50 dark:bg-gray-800 dark:text-orange-400" role="alert"><span className="font-medium">Atenção!</span> Foi identificado um decreto de suspensão de prazo no período. Verifique se o advogado juntou o decreto aos autos para comprovar a prorrogação.</div> )}
                         <div className={`grid grid-cols-1 ${resultado.decretoImpactou ? 'md:grid-cols-2' : ''} gap-4`}>
                             <div className={resultado.decretoImpactou ? 'border-r md:pr-4' : ''}>
                                 <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">{resultado.decretoImpactou ? "Cenário 1: Sem Decreto" : "Prazo Final"}</h3>
                                 <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacaoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início em {resultado.inicioPrazoSemDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis é:</p>
+                                <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos é:</p>
                                 <p className="text-center mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{resultado.semDecreto.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
                             </div>
                             {resultado.decretoImpactou && (
                                 <div className="border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4 pt-4 md:pt-0">
                                     <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 text-center mb-2">Cenário 2: Com Decreto</h3>
                                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">Publicação em {resultado.dataPublicacaoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})} / Início em {resultado.inicioPrazoComDecreto.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                    <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias úteis, <strong>comprovando o decreto</strong>, é:</p>
+                                    <p className="text-center text-slate-600 dark:text-slate-300">O prazo final de {resultado.prazo} dias corridos, <strong>comprovando o decreto</strong>, é:</p>
                                     <p className="text-center mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{resultado.comDecreto.prazoFinal.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
-                                    {resultado.comDecreto.diasNaoUteis.some(d => ['2025-06-19', '2025-06-20'].includes(d.data.toISOString().split('T')[0])) && (
-                                        <div className="mt-4 p-3 text-xs text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert"><span className="font-medium">Atenção:</span> A comprovação do feriado de Corpus Christi (19/06) e da suspensão do dia 20/06 é necessária para validar a prorrogação do prazo.</div>
-                                    )}
+                                    {/* O alerta para crime não é necessário aqui, pois a lógica de dias corridos já prorroga para o próximo dia útil sem necessidade de comprovação de decreto para o dia final. O alerta de impacto de decreto já é exibido acima. */}
                                 </div>
                             )}
                         </div>
@@ -1407,6 +1412,7 @@ const CalculatorApp = () => {
     
     return(
     <>
+    <div class="flex-grow overflow-y-auto"></div>
         <nav className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50">
             {showNameAlert && (
                 <div className="bg-yellow-100 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-800/50 p-3">
